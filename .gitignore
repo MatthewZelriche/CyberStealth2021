@@ -1,0 +1,11 @@
+.vs/*
+Binaries/*
+Config/*
+DerivedDataCache/*
+Intermediate/*
+Saved/*
+Content/Proprietary/*
+
+
+Plugins/PBCharacterMovement/Binaries/*
+Plugins/PBCharacterMovement/Intermediate/*
