@@ -1,0 +1,3 @@
+[submodule "Plugins/ThirdParty/hsm"]
+	path = Plugins/ThirdParty/hsm
+	url = https://github.com/amaiorano/hsm

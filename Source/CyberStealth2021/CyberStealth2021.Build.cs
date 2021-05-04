@@ -12,6 +12,7 @@ public class CyberStealth2021 : ModuleRules
 
 		PrivateDependencyModuleNames.AddRange(new string[] {  });
 
+		PrivateIncludePaths.Add("../Plugins/ThirdParty/hsm/include/");
 		// Uncomment if you are using Slate UI
 		// PrivateDependencyModuleNames.AddRange(new string[] { "Slate", "SlateCore" });
 		
