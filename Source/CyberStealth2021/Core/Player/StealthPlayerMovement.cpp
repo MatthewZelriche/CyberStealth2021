@@ -4,15 +4,19 @@
 #include "StealthPlayerMovement.h"
 #include "GameFramework/Character.h"
 #include "Components/CapsuleComponent.h"
+#include "StealthPlayerCharacter.h"
 
 UStealthPlayerMovement::UStealthPlayerMovement() {
 	// We want this off by default, so the player can smoothly move up and down steps.
 	bUseFlatBaseForFloorChecks = false;
+
+	movementStates.Initialize<PlayerMovementStates::Walk>(this);
 }
 
 void UStealthPlayerMovement::TickComponent(float DeltaTime, enum ELevelTick TickType, FActorComponentTickFunction* ThisTickFunction) {
 	Super::TickComponent(DeltaTime, TickType, ThisTickFunction);
 
+	movementStates.ProcessStateTransitions();
 	FlatBaseToggle();
 }
 
@@ -53,7 +57,24 @@ bool UStealthPlayerMovement::TraceTestForFloor(float zOffset = 0) {
 }
 
 float UStealthPlayerMovement::GetMaxSpeed() const {
-	// TODO: Custom movement speed logic (slide, crouch, sprint, etc) prior to defaulting to ue4 base logic.
+	if (bCheatFlying) {
+		return SprintSpeed * 1.5f;
+	}
+	else if (movementStates.IsInState<PlayerMovementStates::Walk>()) {
+		return WalkSpeed;
+	} 
+	else if (movementStates.IsInState<PlayerMovementStates::Sprint>()) {
+		return SprintSpeed;
+	}
+	else if (movementStates.IsInState<PlayerMovementStates::Crouch>() || movementStates.IsInState<PlayerMovementStates::VariableCrouch>()) {
+		return MaxWalkSpeedCrouched;
+	} 
+	else if (movementStates.IsInState <PlayerMovementStates::Slide>()) {
+		// Set to 0 and take direct control? Or have a seperate SlideSpeed var?
+		return 0.0f;
+	}
+
+	// Fallback on Super if no other match found.
 	return Super::GetMaxSpeed();
 }
 

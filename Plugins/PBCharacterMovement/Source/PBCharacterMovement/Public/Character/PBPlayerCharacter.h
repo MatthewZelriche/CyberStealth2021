@@ -67,8 +67,7 @@ private:
 	/** Pointer to player movement component */
 	UPBPlayerMovement* MovementPtr;
 
-	/** True if we're sprinting*/
-	bool bIsSprinting;
+
 
 	bool bWantsToWalk;
 
@@ -77,6 +76,8 @@ private:
 protected:
 	virtual void BeginPlay();
 
+	/** True if we're sprinting*/
+	bool bIsSprinting;
 public:
 	APBPlayerCharacter(const FObjectInitializer& ObjectInitializer);
 

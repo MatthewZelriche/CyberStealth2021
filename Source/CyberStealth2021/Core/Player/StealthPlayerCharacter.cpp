@@ -8,3 +8,11 @@ AStealthPlayerCharacter::AStealthPlayerCharacter(const FObjectInitializer& Objec
 	: Super(ObjectInitializer.SetDefaultSubobjectClass<UStealthPlayerMovement>(ACharacter::CharacterMovementComponentName)) {
 
 }
+
+void AStealthPlayerCharacter::Sprint() {
+	bIsSprinting = true;
+}
+
+void AStealthPlayerCharacter::StopSprinting() {
+	bIsSprinting = false;
+}

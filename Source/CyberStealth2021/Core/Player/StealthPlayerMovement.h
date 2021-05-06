@@ -4,7 +4,10 @@
 
 #include "CoreMinimal.h"
 #include "Character/PBPlayerMovement.h"
+#include "PlayerMovementStates.h"
 #include "StealthPlayerMovement.generated.h"
+
+class StealthPlayerCharacter;
 
 /**
  * 
@@ -13,6 +16,10 @@ UCLASS()
 class CYBERSTEALTH2021_API UStealthPlayerMovement : public UPBPlayerMovement
 {
 	GENERATED_BODY()
+private:
+	friend PlayerMovementStates;
+	hsm::StateMachine movementStates;
+
 public:
 	UStealthPlayerMovement();
 

@@ -15,4 +15,9 @@ class CYBERSTEALTH2021_API AStealthPlayerCharacter : public APBPlayerCharacter
 	GENERATED_BODY()
 public:
 	AStealthPlayerCharacter(const FObjectInitializer& ObjectInitializer);
+
+	UFUNCTION(BlueprintCallable)
+	void Sprint();
+	UFUNCTION(BlueprintCallable)
+	void StopSprinting();
 };
