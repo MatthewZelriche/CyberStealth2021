@@ -16,6 +16,10 @@ class CYBERSTEALTH2021_API UStealthPlayerMovement : public UPBPlayerMovement
 public:
 	UStealthPlayerMovement();
 
+	virtual void Crouch(bool bClientSimulation) override;
+	virtual void UnCrouch(bool bClientSimulation) override;
+	virtual float GetMaxSpeed() const override;
+
 protected:
 	void TickComponent(float DeltaTime, enum ELevelTick TickType, FActorComponentTickFunction* ThisTickFunction) override;
 

@@ -8,23 +8,11 @@
 
 #include "PBPlayerMovement.generated.h"
 
-#define LADDER_MOUNT_TIMEOUT 0.2f
-
 // Crouch Timings (in seconds)
 #define MOVEMENT_DEFAULT_CROUCHTIME 0.4f
 #define MOVEMENT_DEFAULT_CROUCHJUMPTIME 0.0f
 #define MOVEMENT_DEFAULT_UNCROUCHTIME 0.2f
 #define MOVEMENT_DEFAULT_UNCROUCHJUMPTIME 0.8f
-
-// Testing mid-air stepping code
-#ifndef MID_AIR_STEP
-#define MID_AIR_STEP 0
-#endif
-
-// Testing surfing code
-#ifndef WIP_SURFING
-#define WIP_SURFING 0
-#endif
 
 class USoundCue;
 
@@ -79,9 +67,6 @@ protected:
 	/** If the player has already landed for a frame, and breaking may be applied. */
 	bool bBrakingFrameTolerated;
 
-	/** If in the crouching transition */
-	bool bInCrouch;
-
 	/** The PB player character */
 	class APBPlayerCharacter* PBCharacter;
 
@@ -123,22 +108,8 @@ public:
 	virtual void CalcVelocity(float DeltaTime, float Friction, bool bFluid, float BrakingDeceleration) override;
 	virtual void ApplyVelocityBraking(float DeltaTime, float Friction, float BrakingDeceleration) override;
 
-	// Overrides for crouch transitions
-	virtual void Crouch(bool bClientSimulation = false) override;
-	virtual void UnCrouch(bool bClientSimulation = false) override;
-	virtual void DoCrouchResize(float TargetTime, float DeltaTime, bool bClientSimulation = false);
-	virtual void DoUnCrouchResize(float TargetTime, float DeltaTime, bool bClientSimulation = false);
-
 	// Noclip overrides
 	virtual bool DoJump(bool bClientSimulation) override;
-
-#if MID_AIR_STEP
-	// Step up
-	virtual void PhysFalling(float deltaTime, int32 Iterations) override;
-	virtual bool CanStepUp(const FHitResult& Hit) const override;
-	virtual bool StepUp(const FVector& GravDir, const FVector& Delta, const FHitResult& Hit,
-						struct UCharacterMovementComponent::FStepDownResult* OutStepDownResult = NULL) override;
-#endif
 
 	// Remove slope boost constaints
 	virtual void TwoWallAdjust(FVector& Delta, const FHitResult& Hit, const FVector& OldHitNormal) const override;
@@ -162,18 +133,7 @@ public:
 		return bBrakingFrameTolerated;
 	}
 
-	bool IsInCrouch() const
-	{
-		return bInCrouch;
-	}
-
-	virtual float GetMaxSpeed() const override;
-
 private:
 	/** Plays sound effect according to movement and surface */
 	void PlayMoveSound(float DeltaTime);
-
-#if WIP_SURFING
-	void PreemptCollision(float DeltaTime, float SurfaceFriction);
-#endif
 };

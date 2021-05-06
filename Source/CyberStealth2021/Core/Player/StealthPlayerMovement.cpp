@@ -51,3 +51,16 @@ bool UStealthPlayerMovement::TraceTestForFloor(float zOffset = 0) {
 		return false;
 	}
 }
+
+float UStealthPlayerMovement::GetMaxSpeed() const {
+	// TODO: Custom movement speed logic (slide, crouch, sprint, etc) prior to defaulting to ue4 base logic.
+	return Super::GetMaxSpeed();
+}
+
+void UStealthPlayerMovement::Crouch(bool bClientSimulation) {
+	// TODO: Implement custom crouching logic.
+}
+
+void UStealthPlayerMovement::UnCrouch(bool bClientSimulation) {
+	// TODO: Implement custom crouching logic.
+}
