@@ -28,6 +28,7 @@ struct CYBERSTEALTH2021_API PlayerMovementStates {
 		DEFINE_HSM_STATE(Crouch)
 
 		virtual hsm::Transition GetTransition() override;
+		virtual void OnEnter() override;
 	};
 
 	struct VariableCrouch : hsm::StateWithOwner<UStealthPlayerMovement> {

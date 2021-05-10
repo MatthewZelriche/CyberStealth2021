@@ -4,7 +4,7 @@
 #include "StealthPlayerCharacter.h"
 
 hsm::Transition PlayerMovementStates::Walk::GetTransition() {
-	if (Owner().bWantsToCrouch && Owner().CharacterOwner->CanCrouch()) {
+	if (Owner().bWantsToCrouch && Owner().CharacterOwner->CanCrouch() && !Owner().PlayerRef->bIsCrouched) {
 		return hsm::SiblingTransition<Crouch>();
 	}
 	else if (Owner().PBCharacter->IsSprinting()) {
@@ -16,13 +16,22 @@ hsm::Transition PlayerMovementStates::Walk::GetTransition() {
 
 hsm::Transition PlayerMovementStates::Crouch::GetTransition() {
 	if (Owner().PBCharacter->IsSprinting()) {
+		Owner().PBCharacter->bIsCrouched = false;
+		Owner().ResizeCharacterHeight(Owner().UncrouchTime, Owner().PlayerRef->StandingHeight);
 		return hsm::SiblingTransition<Sprint>();
 	}
 	else if (!Owner().bWantsToCrouch) {
+		Owner().PBCharacter->bIsCrouched = false;
+		Owner().ResizeCharacterHeight(Owner().UncrouchTime, Owner().PlayerRef->StandingHeight);
 		return hsm::SiblingTransition<Walk>();
 	}
 
 	return hsm::NoTransition();
+}
+
+void PlayerMovementStates::Crouch::OnEnter() {
+	Owner().PBCharacter->bIsCrouched = true;
+	Owner().ResizeCharacterHeight(Owner().CrouchTime, Owner().CrouchedHalfHeight);
 }
 
 hsm::Transition PlayerMovementStates::Sprint::GetTransition() {

@@ -4,6 +4,7 @@
 #include "StealthPlayerMovement.h"
 #include "GameFramework/Character.h"
 #include "Components/CapsuleComponent.h"
+#include "Camera/CameraComponent.h"
 #include "StealthPlayerCharacter.h"
 
 UStealthPlayerMovement::UStealthPlayerMovement() {
@@ -11,6 +12,19 @@ UStealthPlayerMovement::UStealthPlayerMovement() {
 	bUseFlatBaseForFloorChecks = false;
 
 	movementStates.Initialize<PlayerMovementStates::Walk>(this);
+
+	PlayerRef = Cast<AStealthPlayerCharacter>(GetOwner());
+}
+
+void UStealthPlayerMovement::BeginPlay() {
+	check(CharacterResizeAlphaCurve);
+
+	FOnTimelineFloat ResizeTimelineProgress;
+	FOnTimelineEvent FinishedResizeEvent;
+	ResizeTimelineProgress.BindUFunction(this, "CharacterResizeAlphaProgress");
+	FinishedResizeEvent.BindUFunction(this, "OnFinishCharacterResize");
+	CharacterResizeTimeline.AddInterpFloat(CharacterResizeAlphaCurve, ResizeTimelineProgress);
+	CharacterResizeTimeline.SetTimelineFinishedFunc(FinishedResizeEvent);
 }
 
 void UStealthPlayerMovement::TickComponent(float DeltaTime, enum ELevelTick TickType, FActorComponentTickFunction* ThisTickFunction) {
@@ -18,6 +32,7 @@ void UStealthPlayerMovement::TickComponent(float DeltaTime, enum ELevelTick Tick
 
 	movementStates.ProcessStateTransitions();
 	FlatBaseToggle();
+	CharacterResizeTimeline.TickTimeline(DeltaTime);
 }
 
 void UStealthPlayerMovement::FlatBaseToggle() {
@@ -79,9 +94,70 @@ float UStealthPlayerMovement::GetMaxSpeed() const {
 }
 
 void UStealthPlayerMovement::Crouch(bool bClientSimulation) {
-	// TODO: Implement custom crouching logic.
+	
 }
 
 void UStealthPlayerMovement::UnCrouch(bool bClientSimulation) {
-	// TODO: Implement custom crouching logic.
+	
+}
+
+void UStealthPlayerMovement::ResizeCharacterHeight(float Duration, float NewCharacterCapsuleHeight) {
+	// Dividing gives us the correct duration in seconds for this function.
+	CharacterResizeTimeline.SetPlayRate(1 / Duration);
+
+	// We only want to define new values if we aren't currently in an existing resize.
+	if (!CharacterResizeTimeline.IsPlaying()) {
+		CachedHeight = GetCharacterOwner()->GetCapsuleComponent()->GetUnscaledCapsuleHalfHeight();
+		CachedEyeHeight = PlayerRef->GetPlayerCamera()->GetRelativeLocation().Z;
+		float HeightDiff = CachedHeight - NewCharacterCapsuleHeight;
+		TargetEyeHeight = CachedHeight - HeightDiff;
+		TargetHeight = NewCharacterCapsuleHeight;
+	}
+
+	// If we recieved a resize request during an existing resize, we just reverse the current timeline.
+	// This technically could cause problem if you try to VariableCrouch under different ceilings in rapid succession,
+	// But level design could be set up to prevent this from happening. 
+	if (CharacterResizeTimeline.IsPlaying()) {
+
+		if (CharacterResizeTimeline.IsReversing()) {
+			CharacterResizeTimeline.Play();
+		}
+		else {
+			CharacterResizeTimeline.Reverse();
+		}
+	}
+	else {
+		CharacterResizeTimeline.PlayFromStart();
+	}
+}
+
+void UStealthPlayerMovement::CharacterResizeAlphaProgress(float Value) {
+	GetCharacterOwner()->GetCapsuleComponent()->SetCapsuleHalfHeight(FMath::Lerp(CachedHeight, TargetHeight, Value)); \
+	UCameraComponent* camera = PlayerRef->GetPlayerCamera();
+	camera->SetRelativeLocation(FVector(camera->GetRelativeLocation().X, camera->GetRelativeLocation().Y, FMath::Lerp(CachedEyeHeight, TargetEyeHeight, Value)));
+}
+
+void UStealthPlayerMovement::OnFinishCharacterResize() {
+	CachedEyeHeight = PlayerRef->GetPlayerCamera()->GetRelativeLocation().Z;
+
+	// Round out the capsule so we don't have ugly floating point numbers.
+	if (FMath::IsNearlyEqual(GetCharacterOwner()->GetCapsuleComponent()->GetUnscaledCapsuleHalfHeight(), CrouchedHalfHeight, 0.001f)) {
+		GetCharacterOwner()->GetCapsuleComponent()->SetCapsuleHalfHeight(FMath::RoundToInt(CrouchedHalfHeight));
+	}
+}
+
+bool UStealthPlayerMovement::CanUncrouch() {
+	FCollisionShape Box = FCollisionShape::MakeBox(FVector(10, 10, 0));
+	
+	FVector Start = CharacterOwner->GetCapsuleComponent()->GetComponentLocation();
+	FVector End = Start;
+	End.Z = End.Z + PlayerRef->StandingHeight;
+
+	FHitResult discard;		// For now, we never actually need the hit result, so we are discarding it.
+	if (GetWorld()->SweepSingleByChannel(discard, Start, End, FQuat::Identity, ECollisionChannel::ECC_Visibility, Box)) {
+		return false;
+	}
+	else {
+		return true;
+	}
 }

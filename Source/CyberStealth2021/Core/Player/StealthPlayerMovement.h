@@ -4,10 +4,11 @@
 
 #include "CoreMinimal.h"
 #include "Character/PBPlayerMovement.h"
+#include "Components/TimelineComponent.h"
 #include "PlayerMovementStates.h"
 #include "StealthPlayerMovement.generated.h"
 
-class StealthPlayerCharacter;
+class AStealthPlayerCharacter;
 
 /**
  * 
@@ -20,8 +21,24 @@ private:
 	friend PlayerMovementStates;
 	hsm::StateMachine movementStates;
 
+	AStealthPlayerCharacter *PlayerRef;
+	FTimeline CharacterResizeTimeline;
+	float CachedHeight = 0.0f;
+	float CachedEyeHeight = 0.0f;
+	float TargetHeight = 0.0f;
+	float TargetEyeHeight = 0.0f;
+	UFUNCTION()
+	void CharacterResizeAlphaProgress(float Value);
+	UFUNCTION()
+	void OnFinishCharacterResize();
+
+protected:
+	UPROPERTY(EditAnywhere, Category = "Dynamic Crouch");
+	UCurveFloat* CharacterResizeAlphaCurve;
+
 public:
 	UStealthPlayerMovement();
+	virtual void BeginPlay() override;
 
 	virtual void Crouch(bool bClientSimulation) override;
 	virtual void UnCrouch(bool bClientSimulation) override;
@@ -41,7 +58,6 @@ private:
 	*/
 	void FlatBaseToggle();
 
-
 	/**
 	* Tests for the presence of a floor below the player.
 	*
@@ -49,4 +65,19 @@ private:
 	* @return True if floor detected, False otherwise.
 	*/
 	bool TraceTestForFloor(float zOffset);
+
+	/**
+	* Sweeps a box from the center of the player (regardless of their current height) to ensure that there is ample room for them to stand up.
+	*
+	* @return True if the player has the available height to stand up, False otherwise.
+	*/
+	bool CanUncrouch();
+
+	/**
+	* Adjusts the character size smoothly over time to a new height. An example usage is crouching and uncrouching.
+	*
+	* @param Duration - How long, in seconds, you would like the smooth transition to take.
+	* @param NewCharacterCapsuleHeight - The new half height the character should resize to.
+	*/
+	void ResizeCharacterHeight(float Duration, float NewCharacterCapsuleHeight);
 };

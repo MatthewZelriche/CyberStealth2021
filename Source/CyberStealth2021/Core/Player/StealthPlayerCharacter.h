@@ -6,6 +6,7 @@
 #include "Character/PBPlayerCharacter.h"
 #include "StealthPlayerCharacter.generated.h"
 
+class UCameraComponent;
 /**
  * 
  */
@@ -13,6 +14,10 @@ UCLASS()
 class CYBERSTEALTH2021_API AStealthPlayerCharacter : public APBPlayerCharacter
 {
 	GENERATED_BODY()
+private:
+
+	UPROPERTY(EditAnywhere)
+	UCameraComponent* PlayerCamera;
 public:
 	AStealthPlayerCharacter(const FObjectInitializer& ObjectInitializer);
 
@@ -20,4 +25,9 @@ public:
 	void Sprint();
 	UFUNCTION(BlueprintCallable)
 	void StopSprinting();
+
+	FORCEINLINE UCameraComponent* GetPlayerCamera() { return PlayerCamera; }
+
+	float StandingHeight = 68.0f;
+	float StandingEyeHeight = 50.0f;
 };
