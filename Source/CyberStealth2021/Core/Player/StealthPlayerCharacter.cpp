@@ -15,6 +15,13 @@ AStealthPlayerCharacter::AStealthPlayerCharacter(const FObjectInitializer& Objec
 	PlayerCamera->SetupAttachment(GetCapsuleComponent());
 	PlayerCamera->SetRelativeLocation(FVector(0, 0, StandingEyeHeight));
 	PlayerCamera->bUsePawnControlRotation = true;
+
+	// Get pointer to overridden movement component
+	StealthMovementPtr = Cast<UStealthPlayerMovement>(ACharacter::GetMovementComponent());
+}
+
+void AStealthPlayerCharacter::Crouch(bool bClientSimulation) {
+	StealthMovementPtr->bWantsToCrouch = true;
 }
 
 void AStealthPlayerCharacter::Sprint() {

@@ -33,7 +33,7 @@ private:
 	void OnFinishCharacterResize();
 
 protected:
-	UPROPERTY(EditAnywhere, Category = "Dynamic Crouch");
+	UPROPERTY(EditAnywhere, Category = "Dynamic Crouch")
 	UCurveFloat* CharacterResizeAlphaCurve;
 
 public:
@@ -43,6 +43,14 @@ public:
 	virtual void Crouch(bool bClientSimulation) override;
 	virtual void UnCrouch(bool bClientSimulation) override;
 	virtual float GetMaxSpeed() const override;
+
+	/**
+	* Sweeps a box from the center of the player (regardless of their current height) to ensure that there is ample room for them to stand up.
+	*
+	* @return True if the player has the available height to stand up, False otherwise.
+	*/
+	UFUNCTION(BlueprintCallable)
+	bool CanUncrouch();
 
 protected:
 	void TickComponent(float DeltaTime, enum ELevelTick TickType, FActorComponentTickFunction* ThisTickFunction) override;
@@ -65,13 +73,6 @@ private:
 	* @return True if floor detected, False otherwise.
 	*/
 	bool TraceTestForFloor(float zOffset);
-
-	/**
-	* Sweeps a box from the center of the player (regardless of their current height) to ensure that there is ample room for them to stand up.
-	*
-	* @return True if the player has the available height to stand up, False otherwise.
-	*/
-	bool CanUncrouch();
 
 	/**
 	* Adjusts the character size smoothly over time to a new height. An example usage is crouching and uncrouching.

@@ -17,10 +17,11 @@ hsm::Transition PlayerMovementStates::Walk::GetTransition() {
 hsm::Transition PlayerMovementStates::Crouch::GetTransition() {
 	if (Owner().PBCharacter->IsSprinting()) {
 		Owner().PBCharacter->bIsCrouched = false;
+		Owner().PlayerRef->UnCrouch();
 		Owner().ResizeCharacterHeight(Owner().UncrouchTime, Owner().PlayerRef->StandingHeight);
 		return hsm::SiblingTransition<Sprint>();
 	}
-	else if (!Owner().bWantsToCrouch) {
+	else if (!Owner().bWantsToCrouch && Owner().CanUncrouch()) {
 		Owner().PBCharacter->bIsCrouched = false;
 		Owner().ResizeCharacterHeight(Owner().UncrouchTime, Owner().PlayerRef->StandingHeight);
 		return hsm::SiblingTransition<Walk>();

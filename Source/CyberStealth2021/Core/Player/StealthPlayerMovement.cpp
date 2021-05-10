@@ -109,8 +109,9 @@ void UStealthPlayerMovement::ResizeCharacterHeight(float Duration, float NewChar
 	if (!CharacterResizeTimeline.IsPlaying()) {
 		CachedHeight = GetCharacterOwner()->GetCapsuleComponent()->GetUnscaledCapsuleHalfHeight();
 		CachedEyeHeight = PlayerRef->GetPlayerCamera()->GetRelativeLocation().Z;
+		// TODO: BUG: Doesn't play nice with non-integer height differences.
 		float HeightDiff = CachedHeight - NewCharacterCapsuleHeight;
-		TargetEyeHeight = CachedHeight - HeightDiff;
+		TargetEyeHeight = CachedEyeHeight - HeightDiff;
 		TargetHeight = NewCharacterCapsuleHeight;
 	}
 
@@ -132,7 +133,7 @@ void UStealthPlayerMovement::ResizeCharacterHeight(float Duration, float NewChar
 }
 
 void UStealthPlayerMovement::CharacterResizeAlphaProgress(float Value) {
-	GetCharacterOwner()->GetCapsuleComponent()->SetCapsuleHalfHeight(FMath::Lerp(CachedHeight, TargetHeight, Value)); \
+	GetCharacterOwner()->GetCapsuleComponent()->SetCapsuleHalfHeight(FMath::Lerp(CachedHeight, TargetHeight, Value));
 	UCameraComponent* camera = PlayerRef->GetPlayerCamera();
 	camera->SetRelativeLocation(FVector(camera->GetRelativeLocation().X, camera->GetRelativeLocation().Y, FMath::Lerp(CachedEyeHeight, TargetEyeHeight, Value)));
 }
@@ -149,9 +150,10 @@ void UStealthPlayerMovement::OnFinishCharacterResize() {
 bool UStealthPlayerMovement::CanUncrouch() {
 	FCollisionShape Box = FCollisionShape::MakeBox(FVector(10, 10, 0));
 	
-	FVector Start = CharacterOwner->GetCapsuleComponent()->GetComponentLocation();
+	FVector Start = GetCharacterOwner()->GetCapsuleComponent()->GetComponentLocation();
+	Start.Z = Start.Z - GetCharacterOwner()->GetCapsuleComponent()->GetUnscaledCapsuleHalfHeight();
 	FVector End = Start;
-	End.Z = End.Z + PlayerRef->StandingHeight;
+	End.Z = End.Z + (PlayerRef->StandingHeight * 2);
 
 	FHitResult discard;		// For now, we never actually need the hit result, so we are discarding it.
 	if (GetWorld()->SweepSingleByChannel(discard, Start, End, FQuat::Identity, ECollisionChannel::ECC_Visibility, Box)) {

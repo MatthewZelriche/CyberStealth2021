@@ -7,6 +7,7 @@
 #include "StealthPlayerCharacter.generated.h"
 
 class UCameraComponent;
+class UStealthPlayerMovement;
 /**
  * 
  */
@@ -18,6 +19,8 @@ private:
 
 	UPROPERTY(EditAnywhere)
 	UCameraComponent* PlayerCamera;
+	UStealthPlayerMovement* StealthMovementPtr;
+
 public:
 	AStealthPlayerCharacter(const FObjectInitializer& ObjectInitializer);
 
@@ -26,8 +29,17 @@ public:
 	UFUNCTION(BlueprintCallable)
 	void StopSprinting();
 
+	virtual void Crouch(bool bClientSimulation) override;
+
+	UFUNCTION(BlueprintCallable)
 	FORCEINLINE UCameraComponent* GetPlayerCamera() { return PlayerCamera; }
+	UFUNCTION(BlueprintCallable)
+	FORCEINLINE UStealthPlayerMovement* GetStealthMovementComp() { return StealthMovementPtr; }
 
 	float StandingHeight = 68.0f;
 	float StandingEyeHeight = 50.0f;
+
+	// Player Settings
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Settings")
+	bool bToggleCrouch = true;
 };
