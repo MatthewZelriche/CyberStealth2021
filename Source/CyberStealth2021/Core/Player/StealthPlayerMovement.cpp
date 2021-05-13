@@ -31,6 +31,7 @@ void UStealthPlayerMovement::TickComponent(float DeltaTime, enum ELevelTick Tick
 	Super::TickComponent(DeltaTime, TickType, ThisTickFunction);
 
 	movementStates.ProcessStateTransitions();
+	movementStates.UpdateStates();
 	FlatBaseToggle();
 	CharacterResizeTimeline.TickTimeline(DeltaTime);
 }
@@ -85,7 +86,7 @@ float UStealthPlayerMovement::GetMaxSpeed() const {
 		return MaxWalkSpeedCrouched;
 	} 
 	else if (movementStates.IsInState <PlayerMovementStates::Slide>()) {
-		// Set to 0 and take direct control? Or have a seperate SlideSpeed var?
+		// TODO: Set to 0 and take direct control? Or have a seperate SlideSpeed var?
 		return 0.0f;
 	}
 
@@ -144,6 +145,51 @@ void UStealthPlayerMovement::OnFinishCharacterResize() {
 	// Round out the capsule so we don't have ugly floating point numbers.
 	if (FMath::IsNearlyEqual(GetCharacterOwner()->GetCapsuleComponent()->GetUnscaledCapsuleHalfHeight(), CrouchedHalfHeight, 0.001f)) {
 		GetCharacterOwner()->GetCapsuleComponent()->SetCapsuleHalfHeight(FMath::RoundToInt(CrouchedHalfHeight));
+	}
+}
+
+bool UStealthPlayerMovement::CheckNeedsVariableCrouch(float& OutCeilingDistance) {
+	FCollisionShape Box = FCollisionShape::MakeBox(FVector(30, 30, 0));
+	static float oldCeilingHeight = 0.0f;
+
+	FVector Start = GetCharacterOwner()->GetCapsuleComponent()->GetComponentLocation();
+	FVector End = Start;
+	Start.Z = Start.Z - GetCharacterOwner()->GetCapsuleComponent()->GetUnscaledCapsuleHalfHeight();
+	End.Z = (End.Z - GetCharacterOwner()->GetCapsuleComponent()->GetUnscaledCapsuleHalfHeight()) + (CrouchedHalfHeight * 2);
+
+	FHitResult Result;
+	if (GetWorld()->SweepSingleByChannel(Result, Start, End, FQuat::Identity, ECollisionChannel::ECC_Visibility, Box)) {
+		OutCeilingDistance = Result.Distance;
+		if (!FMath::IsNearlyEqual(OutCeilingDistance, oldCeilingHeight, 0.9f)) {
+			oldCeilingHeight = OutCeilingDistance;
+			return true;
+		}
+		else {
+			oldCeilingHeight = OutCeilingDistance;
+			return false;
+		}
+	}
+	else {
+		oldCeilingHeight = 0.0f;
+		OutCeilingDistance = 0.0f;
+		return false;
+	}
+}
+
+bool UStealthPlayerMovement::CheckCanExitVariableCrouch() {
+	FCollisionShape Box = FCollisionShape::MakeBox(FVector(30, 30, 0));
+
+	FVector Start = GetCharacterOwner()->GetCapsuleComponent()->GetComponentLocation();
+	FVector End = Start;
+	Start.Z = Start.Z - GetCharacterOwner()->GetCapsuleComponent()->GetUnscaledCapsuleHalfHeight();
+	End.Z = (End.Z - GetCharacterOwner()->GetCapsuleComponent()->GetUnscaledCapsuleHalfHeight()) + (CrouchedHalfHeight * 2);
+
+	FHitResult Result;
+	if (GetWorld()->SweepSingleByChannel(Result, Start, End, FQuat::Identity, ECollisionChannel::ECC_Visibility, Box)) {
+		return false;
+	}
+	else {
+		return true;
 	}
 }
 

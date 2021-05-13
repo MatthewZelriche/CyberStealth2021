@@ -75,6 +75,25 @@ private:
 	bool TraceTestForFloor(float zOffset);
 
 	/**
+	* Cast a box trace to check if the character needs to adjust their capsule for a new variable crouch height. 
+	* 
+	* Variable crouch is a feature where the player can crouch into spaces smaller than their regular crouch height. The player
+	* does so by simply moving up to a new space while in crouch mode. This function checks if the player is about to 
+	* enter a new "variable height" crouch space - either one larger or smaller than the current crouch space, but always smaller than a "regular" crouch space. 
+	* 
+	* @oaram OutCeilingDistance - provide a float that will be filled with the distance between the old and new ceilings of the two crouch spaces
+	* @return True if the player needs to enter a new variable crouch height, False otherwise. 
+	*/
+	bool CheckNeedsVariableCrouch(float& OutCeilingDistance);
+
+	/**
+	* Checks if the player should exist variable crouch entirely, because they are no longer in a "variable height" crouch space. 
+	* 
+	* @return True if the player should exist variable crouch, False otherwise. 
+	*/
+	bool CheckCanExitVariableCrouch();
+
+	/**
 	* Adjusts the character size smoothly over time to a new height. An example usage is crouching and uncrouching.
 	*
 	* @param Duration - How long, in seconds, you would like the smooth transition to take.
