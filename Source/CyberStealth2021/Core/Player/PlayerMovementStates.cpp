@@ -3,8 +3,53 @@
 #include "StealthPlayerMovement.h"
 #include "StealthPlayerCharacter.h"
 
+hsm::Transition PlayerMovementStates::GenericLocomotion::GetTransition() {
+	// bDidFinishSlide is set after the slide timeline is completed. We flip it back to false here until the next slide occurs. 
+	if (Owner().bDidFinishSlide) {
+		Owner().bDidFinishSlide = false;
+		Owner().PlayerRef->Crouch(false);
+		Owner().PBCharacter->bIsCrouched = true;
+		float OutCeilingDist = 0.0f;
+		if (Owner().CheckNeedsVariableCrouch(OutCeilingDist)) {
+			Owner().ResizeCharacterHeight(0.15f, OutCeilingDist / 2.0f);		// Halve the Distance since we are resizing the half-height.
+			return hsm::InnerEntryTransition<VariableCrouch>();
+		}
+		else {
+			Owner().ResizeCharacterHeight(Owner().CrouchTime, Owner().CrouchedHalfHeight);
+			return hsm::InnerEntryTransition<Crouch>();
+		}
+	}
+	else if (Owner().PBCharacter->IsSprinting()) {
+		if (Owner().bWantsToCrouch && !(Owner().movementStates.IsInState<Crouch>() || Owner().movementStates.IsInState<VariableCrouch>())) {
+			GEngine->AddOnScreenDebugMessage(-1, 15.0f, FColor::Yellow, TEXT("Begin slide!"));
+			return hsm::SiblingTransition<Slide>();
+		}
+		else {
+			return hsm::InnerEntryTransition<Sprint>();
+		}
+	}
+	else {
+		return hsm::InnerEntryTransition<Walk>();
+	}
+}
+
+hsm::Transition PlayerMovementStates::Slide::GetTransition() {
+	if (Owner().bDidFinishSlide) {
+		return hsm::SiblingTransition<GenericLocomotion>();
+	}
+	else {
+		return hsm::NoTransition();
+	}
+}
+
+void PlayerMovementStates::Slide::OnEnter() {
+	Owner().SlideStartCachedVector = Owner().PlayerRef->GetActorForwardVector();
+	Owner().ResizeCharacterHeight(0.2f, 28.0f);
+	Owner().SlideTimeline.PlayFromStart();
+}
+
 hsm::Transition PlayerMovementStates::Walk::GetTransition() {
-	if (Owner().bWantsToCrouch && Owner().CharacterOwner->CanCrouch() && !Owner().PlayerRef->bIsCrouched) {
+	if (Owner().bWantsToCrouch && Owner().CharacterOwner->CanCrouch()) {
 		Owner().PBCharacter->bIsCrouched = true;
 		float OutCeilingDist = 0.0f;
 		// Enter Variable Crouch State

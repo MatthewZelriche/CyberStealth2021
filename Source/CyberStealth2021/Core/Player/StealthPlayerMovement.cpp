@@ -11,13 +11,14 @@ UStealthPlayerMovement::UStealthPlayerMovement() {
 	// We want this off by default, so the player can smoothly move up and down steps.
 	bUseFlatBaseForFloorChecks = false;
 
-	movementStates.Initialize<PlayerMovementStates::Walk>(this);
+	movementStates.Initialize<PlayerMovementStates::GenericLocomotion>(this);
 
 	PlayerRef = Cast<AStealthPlayerCharacter>(GetOwner());
 }
 
 void UStealthPlayerMovement::BeginPlay() {
 	check(CharacterResizeAlphaCurve);
+	check(SlideAlphaCurve);
 
 	FOnTimelineFloat ResizeTimelineProgress;
 	FOnTimelineEvent FinishedResizeEvent;
@@ -25,6 +26,14 @@ void UStealthPlayerMovement::BeginPlay() {
 	FinishedResizeEvent.BindUFunction(this, "OnFinishCharacterResize");
 	CharacterResizeTimeline.AddInterpFloat(CharacterResizeAlphaCurve, ResizeTimelineProgress);
 	CharacterResizeTimeline.SetTimelineFinishedFunc(FinishedResizeEvent);
+
+	FOnTimelineFloat SlideTimelineProgress;
+	FOnTimelineEvent FinishedSlideEvent;
+	SlideTimelineProgress.BindUFunction(this, "PlayerSlideAlphaProgress");
+	FinishedSlideEvent.BindUFunction(this, "OnFinishPlayerSlide");
+	SlideTimeline.AddInterpFloat(SlideAlphaCurve, SlideTimelineProgress);
+	SlideTimeline.SetTimelineFinishedFunc(FinishedSlideEvent);
+	SlideTimeline.SetPlayRate(1 / 1.0f);
 }
 
 void UStealthPlayerMovement::TickComponent(float DeltaTime, enum ELevelTick TickType, FActorComponentTickFunction* ThisTickFunction) {
@@ -34,6 +43,7 @@ void UStealthPlayerMovement::TickComponent(float DeltaTime, enum ELevelTick Tick
 	movementStates.UpdateStates();
 	FlatBaseToggle();
 	CharacterResizeTimeline.TickTimeline(DeltaTime);
+	SlideTimeline.TickTimeline(DeltaTime);
 }
 
 void UStealthPlayerMovement::FlatBaseToggle() {
@@ -85,9 +95,8 @@ float UStealthPlayerMovement::GetMaxSpeed() const {
 	else if (movementStates.IsInState<PlayerMovementStates::Crouch>() || movementStates.IsInState<PlayerMovementStates::VariableCrouch>()) {
 		return MaxWalkSpeedCrouched;
 	} 
-	else if (movementStates.IsInState <PlayerMovementStates::Slide>()) {
-		// TODO: Set to 0 and take direct control? Or have a seperate SlideSpeed var?
-		return 0.0f;
+	else if (movementStates.IsInState<PlayerMovementStates::Slide>()) {
+		return SlideSpeed;
 	}
 
 	// Fallback on Super if no other match found.
@@ -131,6 +140,14 @@ void UStealthPlayerMovement::ResizeCharacterHeight(float Duration, float NewChar
 	else {
 		CharacterResizeTimeline.PlayFromStart();
 	}
+}
+
+void UStealthPlayerMovement::PlayerSlideAlphaProgress() {
+	PlayerRef->AddMovementInput(PlayerRef->GetActorForwardVector(), 1.0f);
+}
+
+void UStealthPlayerMovement::OnFinishPlayerSlide() {
+	bDidFinishSlide = true;
 }
 
 void UStealthPlayerMovement::CharacterResizeAlphaProgress(float Value) {

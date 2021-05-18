@@ -28,6 +28,10 @@ public:
 	void Sprint();
 	UFUNCTION(BlueprintCallable)
 	void StopSprinting();
+	UFUNCTION(BlueprintCallable)
+	void LookY(float value);
+	UFUNCTION(BlueprintCallable)
+	void LookX(float value);
 
 	virtual void Crouch(bool bClientSimulation) override;
 
@@ -42,4 +46,8 @@ public:
 	// Player Settings
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Settings")
 	bool bToggleCrouch = true;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Settings")
+	float XMouseSensitivity = 1.0f;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Settings")
+	float YMouseSensitivity = 1.0f;
 };

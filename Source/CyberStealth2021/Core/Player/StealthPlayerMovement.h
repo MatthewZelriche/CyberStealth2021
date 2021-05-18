@@ -22,6 +22,8 @@ private:
 	hsm::StateMachine movementStates;
 
 	AStealthPlayerCharacter *PlayerRef;
+
+	// Crouching
 	FTimeline CharacterResizeTimeline;
 	float CachedHeight = 0.0f;
 	float CachedEyeHeight = 0.0f;
@@ -31,6 +33,18 @@ private:
 	void CharacterResizeAlphaProgress(float Value);
 	UFUNCTION()
 	void OnFinishCharacterResize();
+
+	// Sliding
+	FTimeline SlideTimeline;
+	UPROPERTY(EditAnywhere, Category = "Sliding")
+	UCurveFloat* SlideAlphaCurve;
+	UPROPERTY(EditAnywhere, Category = "Sliding")
+	float SlideSpeed = 800.0f;
+	UFUNCTION()
+	void PlayerSlideAlphaProgress();
+	UFUNCTION()
+	void OnFinishPlayerSlide();
+	bool bDidFinishSlide = false;
 
 protected:
 	UPROPERTY(EditAnywhere, Category = "Dynamic Crouch")
@@ -51,6 +65,14 @@ public:
 	*/
 	UFUNCTION(BlueprintCallable)
 	bool CanUncrouch();
+
+	UFUNCTION(BlueprintCallable)
+	bool GetInSlideState() { return movementStates.IsInState<PlayerMovementStates::Slide>(); }
+	UFUNCTION(BlueprintCallable)
+	bool GetInSprintState() { return movementStates.IsInState<PlayerMovementStates::Sprint>(); }
+	FVector SlideStartCachedVector;
+	UPROPERTY(EditAnywhere, Category = "Sliding")
+	float SlideTurnReduction = 2.5f;
 
 protected:
 	void TickComponent(float DeltaTime, enum ELevelTick TickType, FActorComponentTickFunction* ThisTickFunction) override;
