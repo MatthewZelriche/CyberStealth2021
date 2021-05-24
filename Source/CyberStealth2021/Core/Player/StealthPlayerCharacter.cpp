@@ -42,13 +42,15 @@ void AStealthPlayerCharacter::Tick(float DeltaTime) {
 		CameraBobComponent->UpdateCameraBob(DeltaTime);
 		
 		if (GetInputAxisValue("MoveRight") > 0) {
-			CameraBobComponent->TiltPlayerCamera(DeltaTime, 6.0f, 4.0f);
+			CameraBobComponent->TiltPlayerCamera(DeltaTime, CameraBobComponent->GetStrafeTiltAmount(), 
+													CameraBobComponent->GetStrafeTiltEnterTime());
 		}
 		else if (GetInputAxisValue("MoveRight") < 0) {
-			CameraBobComponent->TiltPlayerCamera(DeltaTime, -6.0f, 4.0f);
+			CameraBobComponent->TiltPlayerCamera(DeltaTime, -CameraBobComponent->GetStrafeTiltAmount(), 
+													CameraBobComponent->GetStrafeTiltEnterTime());
 		}
 		else {
-			CameraBobComponent->TiltPlayerCamera(DeltaTime, 0.0f, 5.0f);
+			CameraBobComponent->TiltPlayerCamera(DeltaTime, 0.0f, CameraBobComponent->GetStrafeTiltExitTime());
 		}
 	}
 }
@@ -70,7 +72,6 @@ void AStealthPlayerCharacter::LookX(float value) {
 	else {
 		float dotProduct = FVector::DotProduct(StealthMovementPtr->SlideStartCachedVector.GetSafeNormal(), GetActorForwardVector().GetSafeNormal());
 		GEngine->AddOnScreenDebugMessage(-1, 15.0f, FColor::Yellow, FString::Printf(TEXT("Dot Product %f"), (1 - dotProduct)));
-		//AddControllerYawInput((value * XMouseSensitivity) * (1 / ((StealthMovementPtr->SlideTurnReduction * FMath::Lerp(0, 6, (1 - dotProduct))) + 1)));
 		AddControllerYawInput((value * XMouseSensitivity) * (1 / ((StealthMovementPtr->SlideTurnReduction * (1 - dotProduct)) + 1)));
 	}
 }

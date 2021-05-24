@@ -36,6 +36,9 @@ public:
 	*/
 	void TiltPlayerCamera(float DeltaTime, float TiltAmount, float TransitionSpeed);
 
+	float GetStrafeTiltAmount() { return strafeTiltAmount; }
+	float GetStrafeTiltEnterTime() { return strafeTiltEnterTime; }
+	float GetStrafeTiltExitTime() { return strafeTiltExitTime; }
 protected:
 	// Called when the game starts
 	virtual void BeginPlay() override;
@@ -47,11 +50,11 @@ private:
 	bool bEnableBob = true;
 	// Time between "steps". Higher number is a quicker step. This determines the frequency of the Abs Sin function. 
 	UPROPERTY(EditAnywhere, Category = "HeadBob")
-	float StepFrequency = 6.0f;
+	float StepFrequency = 6.5f;
 	// How much variation there should be in step time for each step, as a percentage. Must be a number between 0 and 100. 0 Means no variation.
 	// For example, if StepFrequency was 3, a StepVariation of 20.0 means the final StepFrequency could be up to 20% higher or lower than 3.
 	UPROPERTY(EditAnywhere, Category = "HeadBob")
-	float StepVariation = 35.0f;
+	float StepVariation = 25.0f;
 	// How extreme the amount of vertical camera movement should be.
 	UPROPERTY(EditAnywhere, Category = "HeadBob")
 	float zHeightMult = 3.2f;
@@ -66,6 +69,13 @@ private:
 	float BobRollAmount = 0.25f;
 	UPROPERTY(EditAnywhere, Category = "HeadBob")
 	float BobRollVariation = 25.0f;
+
+	UPROPERTY(EditAnywhere, Category = "Strafe Tilting")
+	float strafeTiltAmount = 4.5f;
+	UPROPERTY(EditAnywhere, Category = "Strafe Tilting")
+	float strafeTiltEnterTime = 4.0f;
+	UPROPERTY(EditAnywhere, Category = "Strafe Tilting")
+	float strafeTiltExitTime = 5.0f;
 
 	float VelMultiplier = 0.0f;
 	float FadeOut = 0.0f;

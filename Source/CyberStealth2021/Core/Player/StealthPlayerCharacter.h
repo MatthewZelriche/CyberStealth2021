@@ -26,8 +26,10 @@ private:
 	UStealthPlayerMovement* StealthMovementPtr;
 	USpringArmComponent* CameraAnchor;
 
+	friend UCameraBob;			// Declare UCameraBob as friend so it can access the private OnPlayerStepped() function.
 protected:
 	virtual void Tick(float DeltaTime) override;
+	virtual void OnPlayerStepped();
 
 public:
 	AStealthPlayerCharacter(const FObjectInitializer& ObjectInitializer);
@@ -43,7 +45,6 @@ public:
 	void LookX(float value);
 
 	virtual void Crouch(bool bClientSimulation) override;
-	virtual void OnPlayerStepped();
 
 	UFUNCTION(BlueprintCallable)
 	FORCEINLINE UCameraComponent* GetPlayerCamera() { return PlayerCamera; }

@@ -43,15 +43,17 @@ void UCameraBob::UpdateCameraBob(float DeltaTime) {
 	if (Velocity != 0.0f) {
 		// TODO: Dehardcode min and max speed values
 		VelMultiplier = FMath::GetMappedRangeValueClamped(FVector2D(120.0f, 610.0f),
-															FVector2D(0.5f, 1.3f), Velocity);
+															FVector2D(0.5f, 1.5f), Velocity);
 
 		// Check if we have just placed a foot on the ground (ie, are we at the bottom of the parabolic curve)
 		if (((oldOldZPos > oldZPos) && oldZPos < zPos) || zPos == 0.0f) {
-			RandomizedStepFrequency = FMath::RandRange(StepFrequency - StepFrequency * (StepVariation / 100), 
-														StepFrequency + StepFrequency * (StepVariation / 100));
+			// Use Perlin Noise instead of a totally random value to avoid extreme sudden changes in step frequency.
+			RandomizedStepFrequency = FMath::GetMappedRangeValueClamped(FVector2D(-1.0f, 1.0f),
+														FVector2D(StepFrequency - StepFrequency * (StepVariation / 100),
+																	StepFrequency + StepFrequency * (StepVariation / 100)),
+														FMath::PerlinNoise1D(Offset));
 			RandomizedZHeightMult = FMath::RandRange(zHeightMult - zHeightMult * (zHeightVariation / 100), 
 														zHeightMult + zHeightMult * (zHeightVariation / 100));
-			// TODO: Make UCameraBob a friend of AStealthPlayerCharacter class?
 			PlayerRef->OnPlayerStepped();
 		}
 
