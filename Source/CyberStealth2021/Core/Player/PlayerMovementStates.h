@@ -23,6 +23,7 @@ struct CYBERSTEALTH2021_API PlayerMovementStates {
 
 		virtual hsm::Transition GetTransition() override;
 		virtual void OnEnter() override;
+		virtual void Update() override;
 	};
 
 	struct Climb : hsm::StateWithOwner<UStealthPlayerMovement> {

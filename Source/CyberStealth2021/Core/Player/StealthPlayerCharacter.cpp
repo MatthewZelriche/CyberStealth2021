@@ -5,6 +5,7 @@
 #include "StealthPlayerMovement.h"
 #include "Camera/CameraComponent.h"
 #include "Components/CapsuleComponent.h"
+#include "GameFramework/SpringArmComponent.h"
 #include "Math/Vector.h"
 #include "Math/UnrealMathUtility.h"
 
@@ -13,13 +14,43 @@ AStealthPlayerCharacter::AStealthPlayerCharacter(const FObjectInitializer& Objec
 
 	GetCapsuleComponent()->InitCapsuleSize(28.0f, StandingHeight);
 
-	PlayerCamera = CreateDefaultSubobject<UCameraComponent>(TEXT("PlayerCamera"));
-	PlayerCamera->SetupAttachment(GetCapsuleComponent());
-	PlayerCamera->SetRelativeLocation(FVector(0, 0, StandingEyeHeight));
-	PlayerCamera->bUsePawnControlRotation = true;
+	// We aren't actually using the SpringArm for its intended purpose. It's just an "anchor" object, so that we 
+	// can bob the camera without having to worry about things like player's eye height. SpringArm is used specifically
+	// because we can use bInheritRoll = false, allowing us to roll the SpringArm but still use control rotation.
+	CameraAnchor = CreateDefaultSubobject<USpringArmComponent>(TEXT("CameraAnchor"));
+	CameraAnchor->SetupAttachment(GetCapsuleComponent());
+	CameraAnchor->SetRelativeLocation(FVector(0.0f, 0.0f, StandingEyeHeight));
+	CameraAnchor->TargetArmLength = 0.0f;
+	CameraAnchor->bEnableCameraLag = false;
+	CameraAnchor->bUsePawnControlRotation = true;		// Critical for ensuring capsule doesn't rotate when we look up and down.
+	CameraAnchor->bInheritRoll = false;
 
+	PlayerCamera = CreateDefaultSubobject<UCameraComponent>(TEXT("PlayerCamera"));
+	PlayerCamera->SetupAttachment(CameraAnchor);
+	PlayerCamera->SetRelativeLocation(FVector(0, 0, 0));
+	
 	// Get pointer to overridden movement component
 	StealthMovementPtr = Cast<UStealthPlayerMovement>(ACharacter::GetMovementComponent());
+
+	CameraBobComponent = CreateDefaultSubobject<UCameraBob>(TEXT("CameraBobber"));
+}
+
+void AStealthPlayerCharacter::Tick(float DeltaTime) {
+	Super::Tick(DeltaTime);
+
+	if (!StealthMovementPtr->GetInSlideState()) {
+		CameraBobComponent->UpdateCameraBob(DeltaTime);
+		
+		if (GetInputAxisValue("MoveRight") > 0) {
+			CameraBobComponent->TiltPlayerCamera(DeltaTime, 6.0f, 4.0f);
+		}
+		else if (GetInputAxisValue("MoveRight") < 0) {
+			CameraBobComponent->TiltPlayerCamera(DeltaTime, -6.0f, 4.0f);
+		}
+		else {
+			CameraBobComponent->TiltPlayerCamera(DeltaTime, 0.0f, 5.0f);
+		}
+	}
 }
 
 void AStealthPlayerCharacter::LookY(float value) {
@@ -46,6 +77,10 @@ void AStealthPlayerCharacter::LookX(float value) {
 
 void AStealthPlayerCharacter::Crouch(bool bClientSimulation) {
 	StealthMovementPtr->bWantsToCrouch = true;
+}
+
+void AStealthPlayerCharacter::OnPlayerStepped() {
+	// TODO: Footstep sounds.
 }
 
 void AStealthPlayerCharacter::Sprint() {

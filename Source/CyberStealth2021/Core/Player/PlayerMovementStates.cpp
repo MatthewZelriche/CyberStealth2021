@@ -3,6 +3,8 @@
 #include "StealthPlayerMovement.h"
 #include "StealthPlayerCharacter.h"
 
+#include "Misc/App.h"
+
 hsm::Transition PlayerMovementStates::GenericLocomotion::GetTransition() {
 	// bDidFinishSlide is set after the slide timeline is completed. We flip it back to false here until the next slide occurs. 
 	if (Owner().bDidFinishSlide) {
@@ -40,6 +42,11 @@ hsm::Transition PlayerMovementStates::Slide::GetTransition() {
 	else {
 		return hsm::NoTransition();
 	}
+}
+
+void PlayerMovementStates::Slide::Update() {
+	// TODO: We need to check if the player slides into an object, and abort the slide early if they did.
+	Owner().PlayerRef->GetCameraBobber()->TiltPlayerCamera(FApp::GetDeltaTime(), -10.0f, 8.0f);
 }
 
 void PlayerMovementStates::Slide::OnEnter() {

@@ -4,7 +4,7 @@
 #include "StealthPlayerMovement.h"
 #include "GameFramework/Character.h"
 #include "Components/CapsuleComponent.h"
-#include "Camera/CameraComponent.h"
+#include "GameFramework/SpringArmComponent.h"
 #include "StealthPlayerCharacter.h"
 
 UStealthPlayerMovement::UStealthPlayerMovement() {
@@ -118,7 +118,7 @@ void UStealthPlayerMovement::ResizeCharacterHeight(float Duration, float NewChar
 	// We only want to define new values if we aren't currently in an existing resize.
 	if (!CharacterResizeTimeline.IsPlaying()) {
 		CachedHeight = GetCharacterOwner()->GetCapsuleComponent()->GetUnscaledCapsuleHalfHeight();
-		CachedEyeHeight = PlayerRef->GetPlayerCamera()->GetRelativeLocation().Z;
+		CachedEyeHeight = PlayerRef->GetCameraAnchor()->GetRelativeLocation().Z;
 		// TODO: BUG: Doesn't play nice with non-integer height differences.
 		float HeightDiff = CachedHeight - NewCharacterCapsuleHeight;
 		TargetEyeHeight = CachedEyeHeight - HeightDiff;
@@ -152,12 +152,12 @@ void UStealthPlayerMovement::OnFinishPlayerSlide() {
 
 void UStealthPlayerMovement::CharacterResizeAlphaProgress(float Value) {
 	GetCharacterOwner()->GetCapsuleComponent()->SetCapsuleHalfHeight(FMath::Lerp(CachedHeight, TargetHeight, Value));
-	UCameraComponent* camera = PlayerRef->GetPlayerCamera();
-	camera->SetRelativeLocation(FVector(camera->GetRelativeLocation().X, camera->GetRelativeLocation().Y, FMath::Lerp(CachedEyeHeight, TargetEyeHeight, Value)));
+	USceneComponent* cameraAnchor = PlayerRef->GetCameraAnchor();
+	cameraAnchor->SetRelativeLocation(FVector(cameraAnchor->GetRelativeLocation().X, cameraAnchor->GetRelativeLocation().Y, FMath::Lerp(CachedEyeHeight, TargetEyeHeight, Value)));
 }
 
 void UStealthPlayerMovement::OnFinishCharacterResize() {
-	CachedEyeHeight = PlayerRef->GetPlayerCamera()->GetRelativeLocation().Z;
+	CachedEyeHeight = PlayerRef->GetCameraAnchor()->GetRelativeLocation().Z;
 
 	// Round out the capsule so we don't have ugly floating point numbers.
 	if (FMath::IsNearlyEqual(GetCharacterOwner()->GetCapsuleComponent()->GetUnscaledCapsuleHalfHeight(), CrouchedHalfHeight, 0.001f)) {

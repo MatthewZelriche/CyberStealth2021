@@ -4,10 +4,12 @@
 
 #include "CoreMinimal.h"
 #include "Character/PBPlayerCharacter.h"
+#include "CameraBob.h"
 #include "StealthPlayerCharacter.generated.h"
 
 class UCameraComponent;
 class UStealthPlayerMovement;
+class USpringArmComponent;
 /**
  * 
  */
@@ -19,10 +21,17 @@ private:
 
 	UPROPERTY(EditAnywhere)
 	UCameraComponent* PlayerCamera;
+	UPROPERTY(EditAnywhere)
+	UCameraBob* CameraBobComponent;
 	UStealthPlayerMovement* StealthMovementPtr;
+	USpringArmComponent* CameraAnchor;
+
+protected:
+	virtual void Tick(float DeltaTime) override;
 
 public:
 	AStealthPlayerCharacter(const FObjectInitializer& ObjectInitializer);
+
 
 	UFUNCTION(BlueprintCallable)
 	void Sprint();
@@ -34,11 +43,16 @@ public:
 	void LookX(float value);
 
 	virtual void Crouch(bool bClientSimulation) override;
+	virtual void OnPlayerStepped();
 
 	UFUNCTION(BlueprintCallable)
 	FORCEINLINE UCameraComponent* GetPlayerCamera() { return PlayerCamera; }
 	UFUNCTION(BlueprintCallable)
 	FORCEINLINE UStealthPlayerMovement* GetStealthMovementComp() { return StealthMovementPtr; }
+	UFUNCTION(BlueprintCallable)
+	FORCEINLINE USpringArmComponent* GetCameraAnchor() { return CameraAnchor; }
+	UFUNCTION(BlueprintCallable)
+	FORCEINLINE UCameraBob* GetCameraBobber() { return CameraBobComponent; }
 
 	float StandingHeight = 68.0f;
 	float StandingEyeHeight = 50.0f;
