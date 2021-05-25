@@ -61,16 +61,10 @@ void UStealthPlayerMovement::FlatBaseToggle() {
 }
 
 bool UStealthPlayerMovement::TraceTestForFloor(float zOffset = 0) {
-	// We need to get the distance to the floor, since the built-in character controller 
-	// hovers the capsule slightly above the ground. This distance should never exceed 2.4f while the player is still "grounded".
-	FFindFloorResult result;
-	FindFloor(CharacterOwner->GetCapsuleComponent()->GetComponentLocation(), result, true);
-
 	FVector Start = CharacterOwner->GetCapsuleComponent()->GetComponentLocation();
 	FVector End = Start;
-
-	// Subtract any specified user offset, and subtract the abovementioned units that the character floats above the floor.
-	End.Z = End.Z - CharacterOwner->GetCapsuleComponent()->GetUnscaledCapsuleHalfHeight() - zOffset - result.FloorDist;
+	// Subtract any specified user offset, and subtract the units that the character floats above the floor.
+	End.Z = End.Z - CharacterOwner->GetCapsuleComponent()->GetUnscaledCapsuleHalfHeight() - zOffset - GetFloorOffset();
 
 	FHitResult discard;		// For now, we never actually need the hit result, so we are discarding it.
 							// TODO: Think of a way to optionally return this? Function overloading? Out parameters?
@@ -103,6 +97,14 @@ float UStealthPlayerMovement::GetMaxSpeed() const {
 	return Super::GetMaxSpeed();
 }
 
+float UStealthPlayerMovement::GetFloorOffset() {
+	FFindFloorResult result;
+	FindFloor(CharacterOwner->GetCapsuleComponent()->GetComponentLocation(), result, true);
+
+	
+	return result.FloorDist;
+}
+
 void UStealthPlayerMovement::Crouch(bool bClientSimulation) {
 	
 }
@@ -114,7 +116,6 @@ void UStealthPlayerMovement::UnCrouch(bool bClientSimulation) {
 void UStealthPlayerMovement::ResizeCharacterHeight(float Duration, float NewCharacterCapsuleHeight) {
 	// Dividing gives us the correct duration in seconds for this function.
 	CharacterResizeTimeline.SetPlayRate(1 / Duration);
-
 	// We only want to define new values if we aren't currently in an existing resize.
 	if (!CharacterResizeTimeline.IsPlaying()) {
 		CachedHeight = GetCharacterOwner()->GetCapsuleComponent()->GetUnscaledCapsuleHalfHeight();
@@ -128,6 +129,7 @@ void UStealthPlayerMovement::ResizeCharacterHeight(float Duration, float NewChar
 	// If we recieved a resize request during an existing resize, we just reverse the current timeline.
 	// This technically could cause problem if you try to VariableCrouch under different ceilings in rapid succession,
 	// But level design could be set up to prevent this from happening. 
+	// TODO: Critical bug where if you end a slide right between two differently sized variable crouch spaces the height adjustment fails.
 	if (CharacterResizeTimeline.IsPlaying()) {
 
 		if (CharacterResizeTimeline.IsReversing()) {
@@ -170,13 +172,20 @@ bool UStealthPlayerMovement::CheckNeedsVariableCrouch(float& OutCeilingDistance)
 	static float oldCeilingHeight = 0.0f;
 
 	FVector Start = GetCharacterOwner()->GetCapsuleComponent()->GetComponentLocation();
+	Start.Z -= GetFloorOffset();
 	FVector End = Start;
-	Start.Z = Start.Z - GetCharacterOwner()->GetCapsuleComponent()->GetUnscaledCapsuleHalfHeight();
+	Start.Z = Start.Z - GetCharacterOwner()->GetCapsuleComponent()->GetUnscaledCapsuleHalfHeight() + 1;
 	End.Z = (End.Z - GetCharacterOwner()->GetCapsuleComponent()->GetUnscaledCapsuleHalfHeight()) + (CrouchedHalfHeight * 2);
 
 	FHitResult Result;
 	if (GetWorld()->SweepSingleByChannel(Result, Start, End, FQuat::Identity, ECollisionChannel::ECC_Visibility, Box)) {
 		OutCeilingDistance = Result.Distance;
+		// Don't allow crouching below the minimum allowed crouch size.
+		if (OutCeilingDistance < (28.0f * 2)) {
+			oldCeilingHeight = 0.0f;
+			OutCeilingDistance = 0.0f;
+			return false;
+		}
 		if (!FMath::IsNearlyEqual(OutCeilingDistance, oldCeilingHeight, 0.9f)) {
 			oldCeilingHeight = OutCeilingDistance;
 			return true;

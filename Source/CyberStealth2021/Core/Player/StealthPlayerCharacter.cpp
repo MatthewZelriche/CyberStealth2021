@@ -71,7 +71,6 @@ void AStealthPlayerCharacter::LookX(float value) {
 	}
 	else {
 		float dotProduct = FVector::DotProduct(StealthMovementPtr->SlideStartCachedVector.GetSafeNormal(), GetActorForwardVector().GetSafeNormal());
-		GEngine->AddOnScreenDebugMessage(-1, 15.0f, FColor::Yellow, FString::Printf(TEXT("Dot Product %f"), (1 - dotProduct)));
 		AddControllerYawInput((value * XMouseSensitivity) * (1 / ((StealthMovementPtr->SlideTurnReduction * (1 - dotProduct)) + 1)));
 	}
 }

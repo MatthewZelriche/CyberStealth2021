@@ -2,7 +2,7 @@
 
 #include "StealthPlayerMovement.h"
 #include "StealthPlayerCharacter.h"
-
+#include "Components/CapsuleComponent.h"
 #include "Misc/App.h"
 
 hsm::Transition PlayerMovementStates::GenericLocomotion::GetTransition() {
@@ -23,20 +23,22 @@ hsm::Transition PlayerMovementStates::GenericLocomotion::GetTransition() {
 	}
 	else if (Owner().PBCharacter->IsSprinting()) {
 		if (Owner().bWantsToCrouch && !(Owner().movementStates.IsInState<Crouch>() || Owner().movementStates.IsInState<VariableCrouch>())) {
-			GEngine->AddOnScreenDebugMessage(-1, 15.0f, FColor::Yellow, TEXT("Begin slide!"));
 			return hsm::SiblingTransition<Slide>();
 		}
 		else {
 			return hsm::InnerEntryTransition<Sprint>();
 		}
 	}
-	else {
+	else if (!Owner().PBCharacter->IsSprinting()) {
 		return hsm::InnerEntryTransition<Walk>();
+	}
+	else {
+		return hsm::NoTransition();
 	}
 }
 
 hsm::Transition PlayerMovementStates::Slide::GetTransition() {
-	if (Owner().bDidFinishSlide) {
+	if (Owner().bDidFinishSlide || CheckIfSlideInterrupted()) {
 		return hsm::SiblingTransition<GenericLocomotion>();
 	}
 	else {
@@ -45,7 +47,6 @@ hsm::Transition PlayerMovementStates::Slide::GetTransition() {
 }
 
 void PlayerMovementStates::Slide::Update() {
-	// TODO: We need to check if the player slides into an object, and abort the slide early if they did.
 	Owner().PlayerRef->GetCameraBobber()->TiltPlayerCamera(FApp::GetDeltaTime(), -10.0f, 8.0f);
 }
 
@@ -53,6 +54,29 @@ void PlayerMovementStates::Slide::OnEnter() {
 	Owner().SlideStartCachedVector = Owner().PlayerRef->GetActorForwardVector();
 	Owner().ResizeCharacterHeight(0.2f, 28.0f);
 	Owner().SlideTimeline.PlayFromStart();
+}
+
+void PlayerMovementStates::Slide::OnExit() {
+	Owner().SlideTimeline.Stop();
+}
+
+bool PlayerMovementStates::Slide::CheckIfSlideInterrupted() {
+	FCollisionShape Box = FCollisionShape::MakeBox(FVector(10, 10, 0));
+	FVector Start = Owner().PlayerRef->GetCapsuleComponent()->GetComponentLocation();
+	Start = Start + (Owner().PlayerRef->GetActorForwardVector() * 30.0f);
+	Start.Z = Start.Z - Owner().GetFloorOffset() - Owner().PlayerRef->GetCapsuleComponent()->GetUnscaledCapsuleHalfHeight() + 1;
+	FVector End = Start;
+	Start.Z = Start.Z + Owner().MaxStepHeight;
+	End.Z = End.Z + (56);
+
+	FHitResult Result;
+	if (Owner().GetWorld()->SweepSingleByChannel(Result, Start, End, FQuat::Identity, ECollisionChannel::ECC_Visibility, Box)) {
+		return true;
+	}
+	else {
+		return false;
+	}
+
 }
 
 hsm::Transition PlayerMovementStates::Walk::GetTransition() {
@@ -133,7 +157,6 @@ void PlayerMovementStates::VariableCrouch::Update() {
 	if (Owner().CheckNeedsVariableCrouch(OutCeilingDist)) {
 		Owner().ResizeCharacterHeight(0.15f, OutCeilingDist / 2.0f);		// Halve the Distance since we are resizing the half-height.
 	}
-
 }
 
 hsm::Transition PlayerMovementStates::Sprint::GetTransition() {

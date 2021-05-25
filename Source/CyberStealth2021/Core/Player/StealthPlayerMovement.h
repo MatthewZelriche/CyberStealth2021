@@ -122,4 +122,6 @@ private:
 	* @param NewCharacterCapsuleHeight - The new half height the character should resize to.
 	*/
 	void ResizeCharacterHeight(float Duration, float NewCharacterCapsuleHeight);
+
+	float GetFloorOffset();
 };
