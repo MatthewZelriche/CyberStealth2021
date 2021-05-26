@@ -10,6 +10,9 @@
 UStealthPlayerMovement::UStealthPlayerMovement() {
 	// We want this off by default, so the player can smoothly move up and down steps.
 	bUseFlatBaseForFloorChecks = false;
+	CrouchTime = 6.0f;
+	UncrouchTime = 6.0f;
+	CrouchedHalfHeight = 42.0f;
 
 	movementStates.Initialize<PlayerMovementStates::GenericLocomotion>(this);
 
@@ -17,15 +20,7 @@ UStealthPlayerMovement::UStealthPlayerMovement() {
 }
 
 void UStealthPlayerMovement::BeginPlay() {
-	check(CharacterResizeAlphaCurve);
 	check(SlideAlphaCurve);
-
-	FOnTimelineFloat ResizeTimelineProgress;
-	FOnTimelineEvent FinishedResizeEvent;
-	ResizeTimelineProgress.BindUFunction(this, "CharacterResizeAlphaProgress");
-	FinishedResizeEvent.BindUFunction(this, "OnFinishCharacterResize");
-	CharacterResizeTimeline.AddInterpFloat(CharacterResizeAlphaCurve, ResizeTimelineProgress);
-	CharacterResizeTimeline.SetTimelineFinishedFunc(FinishedResizeEvent);
 
 	FOnTimelineFloat SlideTimelineProgress;
 	FOnTimelineEvent FinishedSlideEvent;
@@ -38,11 +33,11 @@ void UStealthPlayerMovement::BeginPlay() {
 
 void UStealthPlayerMovement::TickComponent(float DeltaTime, enum ELevelTick TickType, FActorComponentTickFunction* ThisTickFunction) {
 	Super::TickComponent(DeltaTime, TickType, ThisTickFunction);
+	UpdateCharacterHeight();
 
 	movementStates.ProcessStateTransitions();
 	movementStates.UpdateStates();
 	FlatBaseToggle();
-	CharacterResizeTimeline.TickTimeline(DeltaTime);
 	SlideTimeline.TickTimeline(DeltaTime);
 }
 
@@ -113,34 +108,23 @@ void UStealthPlayerMovement::UnCrouch(bool bClientSimulation) {
 	
 }
 
-void UStealthPlayerMovement::ResizeCharacterHeight(float Duration, float NewCharacterCapsuleHeight) {
-	// Dividing gives us the correct duration in seconds for this function.
-	CharacterResizeTimeline.SetPlayRate(1 / Duration);
-	// We only want to define new values if we aren't currently in an existing resize.
-	if (!CharacterResizeTimeline.IsPlaying()) {
-		CachedHeight = GetCharacterOwner()->GetCapsuleComponent()->GetUnscaledCapsuleHalfHeight();
-		CachedEyeHeight = PlayerRef->GetCameraAnchor()->GetRelativeLocation().Z;
-		// TODO: BUG: Doesn't play nice with non-integer height differences.
-		float HeightDiff = CachedHeight - NewCharacterCapsuleHeight;
-		TargetEyeHeight = CachedEyeHeight - HeightDiff;
-		TargetHeight = NewCharacterCapsuleHeight;
-	}
+void UStealthPlayerMovement::RequestCharacterResize(float NewSize, float Speed) {
+	NewCapsuleHeight = NewSize;
+	HeightTransitionSpeed = Speed;
+}
 
-	// If we recieved a resize request during an existing resize, we just reverse the current timeline.
-	// This technically could cause problem if you try to VariableCrouch under different ceilings in rapid succession,
-	// But level design could be set up to prevent this from happening. 
-	// TODO: Critical bug where if you end a slide right between two differently sized variable crouch spaces the height adjustment fails.
-	if (CharacterResizeTimeline.IsPlaying()) {
-
-		if (CharacterResizeTimeline.IsReversing()) {
-			CharacterResizeTimeline.Play();
-		}
-		else {
-			CharacterResizeTimeline.Reverse();
-		}
+void UStealthPlayerMovement::UpdateCharacterHeight() {
+	float currentHalfHeight = PlayerRef->GetCapsuleComponent()->GetUnscaledCapsuleHalfHeight();
+	float resizeProgress = FMath::FInterpTo(currentHalfHeight, NewCapsuleHeight, GetWorld()->GetDeltaSeconds(), HeightTransitionSpeed);
+	if (FMath::IsNearlyEqual(resizeProgress, NewCapsuleHeight, 0.1f)) {
+		resizeProgress = NewCapsuleHeight;
 	}
-	else {
-		CharacterResizeTimeline.PlayFromStart();
+	PlayerRef->GetCapsuleComponent()->SetCapsuleHalfHeight(resizeProgress);
+	USpringArmComponent* cameraAnchor = PlayerRef->GetCameraAnchor();
+
+	if (resizeProgress != NewCapsuleHeight) {
+		float cameraMoveAmount = currentHalfHeight - resizeProgress;
+		cameraAnchor->MoveComponent(FVector(0.0f, 0.0f, -cameraMoveAmount), cameraAnchor->GetRelativeRotation(), false);
 	}
 }
 
@@ -150,21 +134,6 @@ void UStealthPlayerMovement::PlayerSlideAlphaProgress() {
 
 void UStealthPlayerMovement::OnFinishPlayerSlide() {
 	bDidFinishSlide = true;
-}
-
-void UStealthPlayerMovement::CharacterResizeAlphaProgress(float Value) {
-	GetCharacterOwner()->GetCapsuleComponent()->SetCapsuleHalfHeight(FMath::Lerp(CachedHeight, TargetHeight, Value));
-	USceneComponent* cameraAnchor = PlayerRef->GetCameraAnchor();
-	cameraAnchor->SetRelativeLocation(FVector(cameraAnchor->GetRelativeLocation().X, cameraAnchor->GetRelativeLocation().Y, FMath::Lerp(CachedEyeHeight, TargetEyeHeight, Value)));
-}
-
-void UStealthPlayerMovement::OnFinishCharacterResize() {
-	CachedEyeHeight = PlayerRef->GetCameraAnchor()->GetRelativeLocation().Z;
-
-	// Round out the capsule so we don't have ugly floating point numbers.
-	if (FMath::IsNearlyEqual(GetCharacterOwner()->GetCapsuleComponent()->GetUnscaledCapsuleHalfHeight(), CrouchedHalfHeight, 0.001f)) {
-		GetCharacterOwner()->GetCapsuleComponent()->SetCapsuleHalfHeight(FMath::RoundToInt(CrouchedHalfHeight));
-	}
 }
 
 bool UStealthPlayerMovement::CheckNeedsVariableCrouch(float& OutCeilingDistance) {

@@ -4,6 +4,7 @@
 #include "StealthPlayerCharacter.h"
 #include "Components/CapsuleComponent.h"
 #include "Misc/App.h"
+#include "CollisionQueryParams.h"
 
 hsm::Transition PlayerMovementStates::GenericLocomotion::GetTransition() {
 	// bDidFinishSlide is set after the slide timeline is completed. We flip it back to false here until the next slide occurs. 
@@ -13,11 +14,11 @@ hsm::Transition PlayerMovementStates::GenericLocomotion::GetTransition() {
 		Owner().PBCharacter->bIsCrouched = true;
 		float OutCeilingDist = 0.0f;
 		if (Owner().CheckNeedsVariableCrouch(OutCeilingDist)) {
-			Owner().ResizeCharacterHeight(0.15f, OutCeilingDist / 2.0f);		// Halve the Distance since we are resizing the half-height.
+			Owner().RequestCharacterResize(OutCeilingDist / 2.0f, Owner().VariableCrouchTime);
 			return hsm::InnerEntryTransition<VariableCrouch>();
 		}
 		else {
-			Owner().ResizeCharacterHeight(Owner().CrouchTime, Owner().CrouchedHalfHeight);
+			Owner().RequestCharacterResize(Owner().CrouchedHalfHeight, Owner().UncrouchTime);
 			return hsm::InnerEntryTransition<Crouch>();
 		}
 	}
@@ -52,7 +53,7 @@ void PlayerMovementStates::Slide::Update() {
 
 void PlayerMovementStates::Slide::OnEnter() {
 	Owner().SlideStartCachedVector = Owner().PlayerRef->GetActorForwardVector();
-	Owner().ResizeCharacterHeight(0.2f, 28.0f);
+	Owner().RequestCharacterResize(Owner().SlideHeight, Owner().SlideTransitionTime);
 	Owner().SlideTimeline.PlayFromStart();
 }
 
@@ -61,22 +62,24 @@ void PlayerMovementStates::Slide::OnExit() {
 }
 
 bool PlayerMovementStates::Slide::CheckIfSlideInterrupted() {
-	FCollisionShape Box = FCollisionShape::MakeBox(FVector(10, 10, 0));
+	FCollisionShape Box = FCollisionShape::MakeBox(FVector(15, 15, 0));
 	FVector Start = Owner().PlayerRef->GetCapsuleComponent()->GetComponentLocation();
-	Start = Start + (Owner().PlayerRef->GetActorForwardVector() * 30.0f);
+	Start = Start + (Owner().PlayerRef->GetActorForwardVector() * 20.0f);
 	Start.Z = Start.Z - Owner().GetFloorOffset() - Owner().PlayerRef->GetCapsuleComponent()->GetUnscaledCapsuleHalfHeight() + 1;
 	FVector End = Start;
 	Start.Z = Start.Z + Owner().MaxStepHeight;
 	End.Z = End.Z + (56);
 
 	FHitResult Result;
-	if (Owner().GetWorld()->SweepSingleByChannel(Result, Start, End, FQuat::Identity, ECollisionChannel::ECC_Visibility, Box)) {
+	// FCollisionQueryParams::DefaultQueryParam is set to trace complex collision. For some reason, that is causing the trace to fail
+	// for me. So for now I have to substitute my own default FCollisionQueryParams that isn't tracing for complex collision.
+	static FCollisionQueryParams defaultParams;
+	if (Owner().GetWorld()->SweepSingleByChannel(Result, Start, End, FQuat::Identity, ECollisionChannel::ECC_Visibility, Box, defaultParams)) {
 		return true;
 	}
 	else {
 		return false;
 	}
-
 }
 
 hsm::Transition PlayerMovementStates::Walk::GetTransition() {
@@ -85,12 +88,12 @@ hsm::Transition PlayerMovementStates::Walk::GetTransition() {
 		float OutCeilingDist = 0.0f;
 		// Enter Variable Crouch State
 		if (Owner().CheckNeedsVariableCrouch(OutCeilingDist)) {
-			Owner().ResizeCharacterHeight(Owner().CrouchTime, OutCeilingDist / 2.0f);		// Halve the Distance since we are resizing the half-height.
+			Owner().RequestCharacterResize(OutCeilingDist / 2.0f, Owner().CrouchTime);
 			return hsm::SiblingTransition<VariableCrouch>();
 		}
 		// Enter Regular Crouch State.
 		else {
-			Owner().ResizeCharacterHeight(Owner().CrouchTime, Owner().CrouchedHalfHeight);
+			Owner().RequestCharacterResize(Owner().CrouchedHalfHeight, Owner().CrouchTime);
 			return hsm::SiblingTransition<Crouch>();
 		}
 	}
@@ -108,19 +111,19 @@ hsm::Transition PlayerMovementStates::Crouch::GetTransition() {
 	if (Owner().PBCharacter->IsSprinting()) {
 		Owner().PBCharacter->bIsCrouched = false;
 		Owner().PlayerRef->UnCrouch();
-		Owner().ResizeCharacterHeight(Owner().UncrouchTime, Owner().PlayerRef->StandingHeight);
+		Owner().RequestCharacterResize(Owner().PlayerRef->StandingHeight, Owner().CrouchToSprintTime);
 		return hsm::SiblingTransition<Sprint>();
 	}
 	// Enter Walk State
 	else if (!Owner().bWantsToCrouch && Owner().CanUncrouch()) {
 		Owner().PBCharacter->bIsCrouched = false;
-		Owner().ResizeCharacterHeight(Owner().UncrouchTime, Owner().PlayerRef->StandingHeight);
+		Owner().RequestCharacterResize(Owner().PlayerRef->StandingHeight, Owner().UncrouchTime);
 		return hsm::SiblingTransition<Walk>();
 	}
 	
 	// Enter Variable Crouch State
 	if (Owner().CheckNeedsVariableCrouch(OutCeilingDist)) {
-		Owner().ResizeCharacterHeight(0.15f, OutCeilingDist / 2.0f);		// Halve the Distance since we are resizing the half-height.
+		Owner().RequestCharacterResize(OutCeilingDist / 2.0f, Owner().VariableCrouchTime);
 		return hsm::SiblingTransition<VariableCrouch>();
 	}
 
@@ -134,18 +137,18 @@ hsm::Transition PlayerMovementStates::VariableCrouch::GetTransition() {
 	if (Owner().PBCharacter->IsSprinting() && Owner().CanUncrouch()) {
 		Owner().PBCharacter->bIsCrouched = false;
 		Owner().PlayerRef->UnCrouch();
-		Owner().ResizeCharacterHeight(Owner().UncrouchTime, Owner().PlayerRef->StandingHeight);
+		Owner().RequestCharacterResize(Owner().PlayerRef->StandingHeight, Owner().CrouchToSprintTime);
 		return hsm::SiblingTransition<Sprint>();
 	}
 	// Enter Regular Crouch State
 	else if (Owner().bWantsToCrouch && Owner().CheckCanExitVariableCrouch()) {
-		Owner().ResizeCharacterHeight(0.15f, Owner().CrouchedHalfHeight);
+		Owner().RequestCharacterResize(Owner().CrouchedHalfHeight, Owner().VariableCrouchTime);
 		return hsm::SiblingTransition<Crouch>();
 	}
 	// Enter Walk State
 	else if (!Owner().bWantsToCrouch && Owner().CanUncrouch()) {
 		Owner().PBCharacter->bIsCrouched = false;
-		Owner().ResizeCharacterHeight(Owner().UncrouchTime, Owner().PlayerRef->StandingHeight);
+		Owner().RequestCharacterResize(Owner().PlayerRef->StandingHeight, Owner().UncrouchTime);
 		return hsm::SiblingTransition<Walk>();
 	}
 
@@ -155,7 +158,7 @@ hsm::Transition PlayerMovementStates::VariableCrouch::GetTransition() {
 void PlayerMovementStates::VariableCrouch::Update() {
 	float OutCeilingDist = 0.0f;
 	if (Owner().CheckNeedsVariableCrouch(OutCeilingDist)) {
-		Owner().ResizeCharacterHeight(0.15f, OutCeilingDist / 2.0f);		// Halve the Distance since we are resizing the half-height.
+		Owner().RequestCharacterResize(OutCeilingDist / 2.0f, Owner().VariableCrouchTime);
 	}
 }
 

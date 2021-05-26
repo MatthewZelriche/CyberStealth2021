@@ -23,16 +23,14 @@ private:
 
 	AStealthPlayerCharacter *PlayerRef;
 
-	// Crouching
-	FTimeline CharacterResizeTimeline;
-	float CachedHeight = 0.0f;
-	float CachedEyeHeight = 0.0f;
-	float TargetHeight = 0.0f;
-	float TargetEyeHeight = 0.0f;
-	UFUNCTION()
-	void CharacterResizeAlphaProgress(float Value);
-	UFUNCTION()
-	void OnFinishCharacterResize();
+	UPROPERTY(EditAnywhere, Category = "Sprinting")
+	float CrouchToSprintTime = 10.0f;
+
+	UPROPERTY(EditAnywhere, Category = "Crouching")
+	float VariableCrouchTime = 15.0f;
+
+	float NewCapsuleHeight = 68.0f;
+	float HeightTransitionSpeed = 0.0f;
 
 	// Sliding
 	FTimeline SlideTimeline;
@@ -40,15 +38,15 @@ private:
 	UCurveFloat* SlideAlphaCurve;
 	UPROPERTY(EditAnywhere, Category = "Sliding")
 	float SlideSpeed = 800.0f;
+	UPROPERTY(EditAnywhere, Category = "Sliding")
+	float SlideHeight = 28.0f;
+	UPROPERTY(EditAnywhere, Category = "Sliding")
+	float SlideTransitionTime = 10.0f;
 	UFUNCTION()
 	void PlayerSlideAlphaProgress();
 	UFUNCTION()
 	void OnFinishPlayerSlide();
 	bool bDidFinishSlide = false;
-
-protected:
-	UPROPERTY(EditAnywhere, Category = "Dynamic Crouch")
-	UCurveFloat* CharacterResizeAlphaCurve;
 
 public:
 	UStealthPlayerMovement();
@@ -76,6 +74,7 @@ public:
 
 protected:
 	void TickComponent(float DeltaTime, enum ELevelTick TickType, FActorComponentTickFunction* ThisTickFunction) override;
+	void UpdateCharacterHeight();
 
 private:
 	/**
@@ -115,13 +114,7 @@ private:
 	*/
 	bool CheckCanExitVariableCrouch();
 
-	/**
-	* Adjusts the character size smoothly over time to a new height. An example usage is crouching and uncrouching.
-	*
-	* @param Duration - How long, in seconds, you would like the smooth transition to take.
-	* @param NewCharacterCapsuleHeight - The new half height the character should resize to.
-	*/
-	void ResizeCharacterHeight(float Duration, float NewCharacterCapsuleHeight);
+	void RequestCharacterResize(float NewSize, float Speed);
 
 	float GetFloorOffset();
 };
