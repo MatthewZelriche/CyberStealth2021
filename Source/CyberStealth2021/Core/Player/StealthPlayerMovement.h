@@ -23,8 +23,6 @@ private:
 
 	AStealthPlayerCharacter *PlayerRef;
 
-	bool mForceFullTransition = false;
-
 	UPROPERTY(EditAnywhere, Category = "Sprinting")
 	float CrouchToSprintTime = 10.0f;
 

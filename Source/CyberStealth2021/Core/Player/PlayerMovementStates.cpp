@@ -3,6 +3,7 @@
 #include "StealthPlayerMovement.h"
 #include "StealthPlayerCharacter.h"
 #include "Components/CapsuleComponent.h"
+#include "Camera/CameraComponent.h"
 #include "Misc/App.h"
 #include "CollisionQueryParams.h"
 
@@ -44,7 +45,7 @@ hsm::Transition PlayerMovementStates::Slide::GetTransition() {
 }
 
 void PlayerMovementStates::Slide::Update() {
-	Owner().PlayerRef->GetCameraBobber()->TiltPlayerCamera(FApp::GetDeltaTime(), -10.0f, 8.0f);
+	Owner().PlayerRef->GetCameraFXHandler()->TiltPlayerCamera(FApp::GetDeltaTime(), -10.0f, 8.0f);
 }
 
 void PlayerMovementStates::Slide::OnEnter() {
@@ -204,4 +205,14 @@ hsm::Transition PlayerMovementStates::Sprint::GetTransition() {
 	}
 
 	return hsm::NoTransition();
+}
+
+void PlayerMovementStates::Sprint::OnEnter() {
+	float currentFOV = Owner().PlayerRef->GetPlayerCamera()->FieldOfView;
+	Owner().PlayerRef->GetCameraFXHandler()->RequestNewFOV(currentFOV + Owner().PlayerRef->GetCameraFXHandler()->GetSprintFOVOffset(), SprintFOVTransitionSpeed);
+}
+
+void PlayerMovementStates::Sprint::OnExit() {
+	float DefaultFOV = Owner().PlayerRef->GetCameraFXHandler()->GetCameraDefaultFOV();
+	Owner().PlayerRef->GetCameraFXHandler()->RequestNewFOV(DefaultFOV, SprintFOVTransitionSpeed);
 }

@@ -20,6 +20,7 @@ UStealthPlayerMovement::UStealthPlayerMovement() {
 }
 
 void UStealthPlayerMovement::BeginPlay() {
+	Super::BeginPlay();
 	check(SlideAlphaCurve);
 
 	FOnTimelineFloat SlideTimelineProgress;

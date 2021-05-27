@@ -43,7 +43,10 @@ struct CYBERSTEALTH2021_API PlayerMovementStates {
 
 	struct Sprint : hsm::StateWithOwner<UStealthPlayerMovement> {
 		DEFINE_HSM_STATE(Sprint)
+		float SprintFOVTransitionSpeed = 3.5f;
 
+		virtual void OnEnter() override;
+		virtual void OnExit() override;
 		virtual hsm::Transition GetTransition() override;
 	};
 

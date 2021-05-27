@@ -4,7 +4,7 @@
 
 #include "CoreMinimal.h"
 #include "Character/PBPlayerCharacter.h"
-#include "CameraBob.h"
+#include "CameraFXHandler.h"
 #include "StealthPlayerCharacter.generated.h"
 
 class UCameraComponent;
@@ -22,11 +22,11 @@ private:
 	UPROPERTY(EditAnywhere)
 	UCameraComponent* PlayerCamera;
 	UPROPERTY(EditAnywhere)
-	UCameraBob* CameraBobComponent;
+	UCameraFXHandler* CameraFXHandler;
 	UStealthPlayerMovement* StealthMovementPtr;
 	USpringArmComponent* CameraAnchor;
 
-	friend UCameraBob;			// Declare UCameraBob as friend so it can access the private OnPlayerStepped() function.
+	friend UCameraFXHandler;			// Declare UCameraBob as friend so it can access the private OnPlayerStepped() function.
 protected:
 	virtual void Tick(float DeltaTime) override;
 	virtual void OnPlayerStepped();
@@ -53,7 +53,7 @@ public:
 	UFUNCTION(BlueprintCallable)
 	FORCEINLINE USpringArmComponent* GetCameraAnchor() { return CameraAnchor; }
 	UFUNCTION(BlueprintCallable)
-	FORCEINLINE UCameraBob* GetCameraBobber() { return CameraBobComponent; }
+	FORCEINLINE UCameraFXHandler* GetCameraFXHandler() { return CameraFXHandler; }
 
 	float StandingHeight = 68.0f;
 	float StandingEyeHeight = 50.0f;

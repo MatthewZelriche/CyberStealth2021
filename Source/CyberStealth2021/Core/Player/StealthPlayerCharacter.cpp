@@ -32,25 +32,23 @@ AStealthPlayerCharacter::AStealthPlayerCharacter(const FObjectInitializer& Objec
 	// Get pointer to overridden movement component
 	StealthMovementPtr = Cast<UStealthPlayerMovement>(ACharacter::GetMovementComponent());
 
-	CameraBobComponent = CreateDefaultSubobject<UCameraBob>(TEXT("CameraBobber"));
+	CameraFXHandler = CreateDefaultSubobject<UCameraFXHandler>(TEXT("CameraFXHandler"));
 }
 
 void AStealthPlayerCharacter::Tick(float DeltaTime) {
 	Super::Tick(DeltaTime);
 
 	if (!StealthMovementPtr->GetInSlideState()) {
-		CameraBobComponent->UpdateCameraBob(DeltaTime);
-		
 		if (GetInputAxisValue("MoveRight") > 0) {
-			CameraBobComponent->TiltPlayerCamera(DeltaTime, CameraBobComponent->GetStrafeTiltAmount(), 
-													CameraBobComponent->GetStrafeTiltEnterTime());
+			CameraFXHandler->TiltPlayerCamera(DeltaTime, CameraFXHandler->GetStrafeTiltAmount(), 
+													CameraFXHandler->GetStrafeTiltEnterTime());
 		}
 		else if (GetInputAxisValue("MoveRight") < 0) {
-			CameraBobComponent->TiltPlayerCamera(DeltaTime, -CameraBobComponent->GetStrafeTiltAmount(), 
-													CameraBobComponent->GetStrafeTiltEnterTime());
+			CameraFXHandler->TiltPlayerCamera(DeltaTime, -CameraFXHandler->GetStrafeTiltAmount(), 
+													CameraFXHandler->GetStrafeTiltEnterTime());
 		}
 		else {
-			CameraBobComponent->TiltPlayerCamera(DeltaTime, 0.0f, CameraBobComponent->GetStrafeTiltExitTime());
+			CameraFXHandler->TiltPlayerCamera(DeltaTime, 0.0f, CameraFXHandler->GetStrafeTiltExitTime());
 		}
 	}
 }
