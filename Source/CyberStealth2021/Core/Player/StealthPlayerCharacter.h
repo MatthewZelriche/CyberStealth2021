@@ -58,7 +58,7 @@ public:
 	float StandingHeight = 68.0f;
 	float StandingEyeHeight = 50.0f;
 
-	// Player Settings
+	// Should crouch be toggled, or "hold-to-crouch"?
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Settings")
 	bool bToggleCrouch = true;
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Settings")

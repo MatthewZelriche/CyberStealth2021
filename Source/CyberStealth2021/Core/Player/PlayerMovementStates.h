@@ -49,13 +49,21 @@ struct CYBERSTEALTH2021_API PlayerMovementStates {
 
 	struct Crouch : hsm::StateWithOwner<UStealthPlayerMovement> {
 		DEFINE_HSM_STATE(Crouch)
-
+		// Disallow use of the base OnEnter() function, since there is never a reason it should be called for this state.
+		// Instead, the custom OnEnter() function with parameters should always be used.
+		virtual void OnEnter() override { check(false); }
+		void OnEnter(float TransitionSpeed, bool bForceCrouch = false);
+		virtual void OnExit() override;
 		virtual hsm::Transition GetTransition() override;
 	};
 
-	struct VariableCrouch : hsm::StateWithOwner<UStealthPlayerMovement> {
+	struct VariableCrouch : Crouch {
 		DEFINE_HSM_STATE(VariableCrouch)
+		void OnEnter(bool bForceCrouch, bool bRegularCrouchSpeed = false);
 		virtual hsm::Transition GetTransition() override;
 		virtual void Update() override;
+
+		bool mRegularCrouchSpeed = false;
+		float EntryHeight = 0.0f;
 	};
 };

@@ -95,7 +95,6 @@ float UStealthPlayerMovement::GetMaxSpeed() const {
 float UStealthPlayerMovement::GetFloorOffset() {
 	FFindFloorResult result;
 	FindFloor(CharacterOwner->GetCapsuleComponent()->GetComponentLocation(), result, true);
-
 	
 	return result.FloorDist;
 }
@@ -155,14 +154,8 @@ bool UStealthPlayerMovement::CheckNeedsVariableCrouch(float& OutCeilingDistance)
 			OutCeilingDistance = 0.0f;
 			return false;
 		}
-		if (!FMath::IsNearlyEqual(OutCeilingDistance, oldCeilingHeight, 0.9f)) {
-			oldCeilingHeight = OutCeilingDistance;
-			return true;
-		}
-		else {
-			oldCeilingHeight = OutCeilingDistance;
-			return false;
-		}
+		oldCeilingHeight = OutCeilingDistance;
+		return true;
 	}
 	else {
 		oldCeilingHeight = 0.0f;

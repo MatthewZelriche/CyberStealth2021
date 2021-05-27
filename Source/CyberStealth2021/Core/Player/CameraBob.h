@@ -46,9 +46,10 @@ protected:
 private:
 	AStealthPlayerCharacter *PlayerRef;
 
+	// Whether we should bob the camera.
 	UPROPERTY(EditAnywhere, Category = "HeadBob")
 	bool bEnableBob = true;
-	// Time between "steps". Higher number is a quicker step. This determines the frequency of the Abs Sin function. 
+	// Time between "steps". Higher number is a quicker step. This determines the frequency of the Abs(Sin(offset)) function. 
 	UPROPERTY(EditAnywhere, Category = "HeadBob")
 	float StepFrequency = 6.5f;
 	// How much variation there should be in step time for each step, as a percentage. Must be a number between 0 and 100. 0 Means no variation.
@@ -58,22 +59,29 @@ private:
 	// How extreme the amount of vertical camera movement should be.
 	UPROPERTY(EditAnywhere, Category = "HeadBob")
 	float zHeightMult = 3.2f;
+	// How much variation there should be in the amount of z movement, as a percentage. See StepFrequency.
 	UPROPERTY(EditAnywhere, Category = "HeadBob")
 	float zHeightVariation = 40.0f;
 	// How much sway from side to side should there be while walking?
 	UPROPERTY(EditAnywhere, Category = "HeadBob")
 	float SwayAmount = 2.0f;
+	// How much variation there should be in the amount of y movement, as a percentage. See StepFrequency.
 	UPROPERTY(EditAnywhere, Category = "HeadBob")
 	float SwayVariation = 10.0f;
+	// How strong the camera should be rolled at an angle. 
 	UPROPERTY(EditAnywhere, Category = "HeadBob")
 	float BobRollAmount = 0.25f;
+	// How much variation there should be in the amount of roll, as a percentage. See StepFrequency.
 	UPROPERTY(EditAnywhere, Category = "HeadBob")
 	float BobRollVariation = 25.0f;
 
+	// How strong the camera should be tilted during strafe movement.
 	UPROPERTY(EditAnywhere, Category = "Strafe Tilting")
 	float strafeTiltAmount = 4.5f;
+	// How long the transition into strafe tilting should be.
 	UPROPERTY(EditAnywhere, Category = "Strafe Tilting")
 	float strafeTiltEnterTime = 4.0f;
+	// How long the transition out of strafe tilting should be.
 	UPROPERTY(EditAnywhere, Category = "Strafe Tilting")
 	float strafeTiltExitTime = 5.0f;
 

@@ -23,6 +23,8 @@ private:
 
 	AStealthPlayerCharacter *PlayerRef;
 
+	bool mForceFullTransition = false;
+
 	UPROPERTY(EditAnywhere, Category = "Sprinting")
 	float CrouchToSprintTime = 10.0f;
 
@@ -63,6 +65,21 @@ public:
 	*/
 	UFUNCTION(BlueprintCallable)
 	bool CanUncrouch();
+	/**
+	* Get the distance between the bottom of the character capsule and the floor.
+	*
+	* The default UE4 character controller, which this is expanding upon, floats the character capsule a few
+	* units above the floor by design. This function can provide exactly how far above the floor the character
+	* is floating, a useful value for certain accurate trace operations.
+	*/
+	float GetFloorOffset();
+	/**
+	* Request a new capsule size for the character, for example when entering crouch.
+	*
+	* @param NewSize - The new capsule size for the character, in half height units.
+	* @param Speed - How quickly the transition to the new height should be. Lower value is slower, higher value is faster.
+	*/
+	void RequestCharacterResize(float NewSize, float Speed);
 
 	UFUNCTION(BlueprintCallable)
 	bool GetInSlideState() { return movementStates.IsInState<PlayerMovementStates::Slide>(); }
@@ -113,8 +130,4 @@ private:
 	* @return True if the player should exist variable crouch, False otherwise. 
 	*/
 	bool CheckCanExitVariableCrouch();
-
-	void RequestCharacterResize(float NewSize, float Speed);
-
-	float GetFloorOffset();
 };

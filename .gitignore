@@ -1,6 +1,9 @@
 .vs/*
 Binaries/*
 Config/*
+!Config/DefaultEngine.ini
+!/Config/DefaultInput.ini
+!/Config/DefaultGame.ini
 DerivedDataCache/*
 Intermediate/*
 Saved/*
