@@ -83,6 +83,8 @@ public:
 	bool GetInSlideState() { return movementStates.IsInState<PlayerMovementStates::Slide>(); }
 	UFUNCTION(BlueprintCallable)
 	bool GetInSprintState() { return movementStates.IsInState<PlayerMovementStates::Sprint>(); }
+	UFUNCTION(BlueprintCallable)
+	bool GetInGenericLocomotionState() { return movementStates.IsInState<PlayerMovementStates::GenericLocomotion>(); }
 	FVector SlideStartCachedVector;
 	UPROPERTY(EditAnywhere, Category = "Sliding")
 	float SlideTurnReduction = 2.5f;
