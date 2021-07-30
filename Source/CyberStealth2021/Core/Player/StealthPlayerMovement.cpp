@@ -6,6 +6,9 @@
 #include "Components/CapsuleComponent.h"
 #include "GameFramework/SpringArmComponent.h"
 #include "StealthPlayerCharacter.h"
+#include "Camera/CameraComponent.h"
+
+#include "CameraFXHandler.h"
 
 UStealthPlayerMovement::UStealthPlayerMovement() {
 	// We want this off by default, so the player can smoothly move up and down steps.
@@ -35,6 +38,7 @@ void UStealthPlayerMovement::BeginPlay() {
 void UStealthPlayerMovement::TickComponent(float DeltaTime, enum ELevelTick TickType, FActorComponentTickFunction* ThisTickFunction) {
 	Super::TickComponent(DeltaTime, TickType, ThisTickFunction);
 	UpdateCharacterHeight();
+	UpdateLeanState();
 
 	movementStates.ProcessStateTransitions();
 	movementStates.UpdateStates();
@@ -111,6 +115,64 @@ void UStealthPlayerMovement::UnCrouch(bool bClientSimulation) {
 void UStealthPlayerMovement::RequestCharacterResize(float NewSize, float Speed) {
 	NewCapsuleHeight = NewSize;
 	HeightTransitionSpeed = Speed;
+}
+
+void UStealthPlayerMovement::RequestLean(float HorzOffsetAmount, float VertOffsetAmount, float CameraRotation, float TransitionSpeed) {
+	TargetLeanHorzOffset = HorzOffsetAmount;
+	TargetLeanVertOffset = VertOffsetAmount;
+	TargetLeanRot = CameraRotation;
+	LeanTransitionSpeed = TransitionSpeed;
+}
+
+float UStealthPlayerMovement::CalculateLeanModifier() {
+	USpringArmComponent* cameraAnchor = PlayerRef->GetCameraAnchor();
+	FHitResult result;
+	FCollisionShape sphere = FCollisionShape::MakeSphere(25.0f);
+	if (GetWorld()->SweepSingleByChannel(result, cameraAnchor->GetComponentLocation(), ((cameraAnchor->GetRightVector() * (TargetLeanHorzOffset)) + cameraAnchor->GetComponentLocation()),
+		FQuat::Identity, ECollisionChannel::ECC_Visibility, sphere)) {
+		// Convert the distance to a normalized value between 0 and 1.
+		return FMath::Abs(result.Distance / (TargetLeanHorzOffset));
+	}
+	else {
+		// We have a full lean space, so theres no need to reduce the amount we actually lean.
+		return 1.0f;
+	}
+}
+
+void UStealthPlayerMovement::UpdateLeanState() {
+	USpringArmComponent* cameraAnchor = PlayerRef->GetCameraAnchor();
+	static float LastHorzLeanProgress = 0.0f;
+	static float LastVertLeanProgress = 0.0f;
+
+	// If there isn't enough space to lean fully (eg, attempting to lean next to a wall) reduce the amount of lean distance appropriately. 
+	float LeanMod = CalculateLeanModifier();
+	float HorzLeanProgress = FMath::FInterpTo(LastHorzLeanProgress, LeanMod * TargetLeanHorzOffset, GetWorld()->GetDeltaSeconds(), LeanTransitionSpeed);
+	float VertLeanProgress = FMath::FInterpTo(LastVertLeanProgress, LeanMod * TargetLeanVertOffset, GetWorld()->GetDeltaSeconds(), LeanTransitionSpeed);
+
+	float VertLeanDelta = 0.0f;
+	float HorzLeanDelta = 0.0f;
+
+	
+	if (FMath::IsNearlyEqual(VertLeanProgress, TargetLeanVertOffset, 0.1f)) {
+		VertLeanProgress = TargetLeanVertOffset;
+	}
+	else {
+		VertLeanDelta = VertLeanProgress - LastVertLeanProgress;
+	}
+
+	if (FMath::IsNearlyEqual(HorzLeanProgress, TargetLeanHorzOffset, 0.1f)) {
+		HorzLeanProgress = TargetLeanHorzOffset;
+	}
+	else {
+		HorzLeanDelta = HorzLeanProgress - LastHorzLeanProgress;
+	}
+
+	// TODO: This in-progress lean rotation breaks the strafe leaning. How to have them work together?
+	UCameraFXHandler* cameraFX = PlayerRef->GetCameraFXHandler();
+	cameraFX->TiltPlayerCamera(GetWorld()->GetDeltaSeconds(), TargetLeanRot * LeanMod, LeanTransitionSpeed);
+	cameraAnchor->AddRelativeLocation(FVector(0.0f, HorzLeanDelta, VertLeanDelta));
+	LastHorzLeanProgress = HorzLeanProgress;
+	LastVertLeanProgress = VertLeanProgress;
 }
 
 void UStealthPlayerMovement::UpdateCharacterHeight() {

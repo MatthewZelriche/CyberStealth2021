@@ -1,4 +1,5 @@
 // Copyright 2021 MatthewZelriche. Licensed under the MIT License. See the included LICENSE.md file for details.
+// The function CalculateLeanModifier() is adapted from Dave Watts' CheekyFPS, licensed under the MIT License. Please see the included NOTICE.md for a copy of the license.
 
 #pragma once
 
@@ -32,6 +33,11 @@ private:
 	float NewCapsuleHeight = 68.0f;
 	float HeightTransitionSpeed = 0.0f;
 
+	float TargetLeanHorzOffset = 0.0f;
+	float TargetLeanVertOffset = 0.0f;
+	float TargetLeanRot = 0.0f;
+	float LeanTransitionSpeed = 0.0f;
+
 	// Sliding
 	FTimeline SlideTimeline;
 	UPROPERTY(EditAnywhere, Category = "Sliding")
@@ -52,8 +58,16 @@ public:
 	UStealthPlayerMovement();
 	virtual void BeginPlay() override;
 
+	/** The Crouch and UnCrouch functions are overridden but left empty in order to disable PBPlayerMovement crouching logic in favor of our own. */
 	virtual void Crouch(bool bClientSimulation) override;
 	virtual void UnCrouch(bool bClientSimulation) override;
+
+	/**
+	* Gets the current max speed of the character based on the PlayerMovementState they are currently in. 
+	* Falls back to PBPlayerMovement behavior if we can't determine the correct speed.
+	*
+	* @return The current max speed of the player.
+	*/
 	virtual float GetMaxSpeed() const override;
 
 	/**
@@ -72,12 +86,23 @@ public:
 	*/
 	float GetFloorOffset();
 	/**
-	* Request a new capsule size for the character, for example when entering crouch.
+	* Request a new capsule size for the character, for example when entering crouch or setting a new variable crouch height.
 	*
 	* @param NewSize - The new capsule size for the character, in half height units.
 	* @param Speed - How quickly the transition to the new height should be. Lower value is slower, higher value is faster.
 	*/
 	void RequestCharacterResize(float NewSize, float Speed);
+
+	/**
+	* Request a new lean position for the character. 
+	*
+	* @param HorzOffsetAmount - How many units the character camera should be horizontally offset from its current position (usually 0).
+	* @param VertOffsetAmount - How many units the character camera should be vertically offset from its current position (usually 0). 
+	* @param CameraRotation - Specify a new Camera Roll rotation.
+	* @param TransitionSpeed - How fast should the character transition into this new lean position. Higher values are quicker.
+	*/
+	UFUNCTION(BlueprintCallable)
+	void RequestLean(float HorzOffsetAmount, float VertOffsetAmount, float CameraRotation, float TransitionSpeed);
 
 	UFUNCTION(BlueprintCallable)
 	bool GetInSlideState() { return movementStates.IsInState<PlayerMovementStates::Slide>(); }
@@ -91,9 +116,22 @@ public:
 
 protected:
 	void TickComponent(float DeltaTime, enum ELevelTick TickType, FActorComponentTickFunction* ThisTickFunction) override;
+
+	/** Called every tick to adjust the player height based on new requested height values from RequestCharacterResize() */
 	void UpdateCharacterHeight();
+	/** Called every tick to adjust the lean amount based on new lean values from RequestLean() */
+	void UpdateLeanState();
 
 private:
+
+	/**
+	* Determines much of a requested lean can be performed without camera collisions with geometry.
+	* 
+	* @return An absolute value between 0.0 and 1.0. This value represents the amount of the originally requested lean that can be satisfied without collisions. 
+	* For example, if the function returns 0.75, then we can perform 75% of the requested lean amount without collisions.
+	*/
+	float CalculateLeanModifier();
+
 	/**
 	* Switches between flat vs rounded base for the player collision capsule based on whether the player is approaching a steep ledge.
 	*

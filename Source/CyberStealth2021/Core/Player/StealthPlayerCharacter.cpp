@@ -38,6 +38,8 @@ AStealthPlayerCharacter::AStealthPlayerCharacter(const FObjectInitializer& Objec
 void AStealthPlayerCharacter::Tick(float DeltaTime) {
 	Super::Tick(DeltaTime);
 
+	// TODO: Doesn't work well with lean camera tilt. How to fix?
+	/*
 	if (!StealthMovementPtr->GetInSlideState()) {
 		if (GetInputAxisValue("MoveRight") > 0) {
 			CameraFXHandler->TiltPlayerCamera(DeltaTime, CameraFXHandler->GetStrafeTiltAmount(), 
@@ -51,6 +53,7 @@ void AStealthPlayerCharacter::Tick(float DeltaTime) {
 			CameraFXHandler->TiltPlayerCamera(DeltaTime, 0.0f, CameraFXHandler->GetStrafeTiltExitTime());
 		}
 	}
+	*/
 }
 
 void AStealthPlayerCharacter::LookY(float value) {
