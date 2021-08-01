@@ -113,7 +113,7 @@ void UStealthPlayerMovement::UnCrouch(bool bClientSimulation) {
 }
 
 void UStealthPlayerMovement::RequestCharacterResize(float NewSize, float Speed) {
-	NewCapsuleHeight = NewSize;
+	NewCapsuleHeight = FMath::Floor(NewSize);
 	HeightTransitionSpeed = Speed;
 }
 
@@ -232,8 +232,8 @@ bool UStealthPlayerMovement::CheckCanExitVariableCrouch() {
 
 	FVector Start = GetCharacterOwner()->GetCapsuleComponent()->GetComponentLocation();
 	FVector End = Start;
-	Start.Z = Start.Z - GetCharacterOwner()->GetCapsuleComponent()->GetUnscaledCapsuleHalfHeight();
-	End.Z = (End.Z - GetCharacterOwner()->GetCapsuleComponent()->GetUnscaledCapsuleHalfHeight()) + (CrouchedHalfHeight * 2);
+	Start.Z = Start.Z - (GetCharacterOwner()->GetCapsuleComponent()->GetUnscaledCapsuleHalfHeight()) * GetWorld()->GetDeltaSeconds();
+	End.Z = (End.Z - (GetCharacterOwner()->GetCapsuleComponent()->GetUnscaledCapsuleHalfHeight()) * GetWorld()->GetDeltaSeconds()) + (CrouchedHalfHeight * 2);
 
 	FHitResult Result;
 	if (GetWorld()->SweepSingleByChannel(Result, Start, End, FQuat::Identity, ECollisionChannel::ECC_Visibility, Box)) {

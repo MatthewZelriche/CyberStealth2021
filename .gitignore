@@ -13,3 +13,4 @@ CyberStealth2021.sln
 
 Plugins/PBCharacterMovement/Binaries/*
 Plugins/PBCharacterMovement/Intermediate/*
+/Build/*
