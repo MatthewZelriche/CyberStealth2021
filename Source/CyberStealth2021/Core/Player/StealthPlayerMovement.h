@@ -57,6 +57,7 @@ private:
 public:
 	UStealthPlayerMovement();
 	virtual void BeginPlay() override;
+	virtual void OnMovementModeChanged(EMovementMode PreviousMovementMode, uint8 PreviousCustomMode);
 
 	/** The Crouch and UnCrouch functions are overridden but left empty in order to disable PBPlayerMovement crouching logic in favor of our own. */
 	virtual void Crouch(bool bClientSimulation) override;

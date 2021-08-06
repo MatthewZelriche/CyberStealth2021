@@ -26,6 +26,8 @@ private:
 	UStealthPlayerMovement* StealthMovementPtr;
 	USpringArmComponent* CameraAnchor;
 
+	bool bIsAvailableForLedgeGrab = false;
+
 	friend UCameraFXHandler;			// Declare UCameraBob as friend so it can access the private OnPlayerStepped() function.
 protected:
 	virtual void Tick(float DeltaTime) override;
@@ -33,7 +35,6 @@ protected:
 
 public:
 	AStealthPlayerCharacter(const FObjectInitializer& ObjectInitializer);
-
 
 	UFUNCTION(BlueprintCallable)
 	void Sprint();
@@ -45,6 +46,8 @@ public:
 	void LookX(float value);
 
 	virtual void Crouch(bool bClientSimulation) override;
+	virtual void OnJumped_Implementation() override;
+	virtual void NotifyJumpApex() override;
 
 	UFUNCTION(BlueprintCallable)
 	FORCEINLINE UCameraComponent* GetPlayerCamera() { return PlayerCamera; }
@@ -54,6 +57,8 @@ public:
 	FORCEINLINE USpringArmComponent* GetCameraAnchor() { return CameraAnchor; }
 	UFUNCTION(BlueprintCallable)
 	FORCEINLINE UCameraFXHandler* GetCameraFXHandler() { return CameraFXHandler; }
+	UFUNCTION(BlueprintCallable)
+	FORCEINLINE bool GetIsAvailableForLedgeGrab() { return bIsAvailableForLedgeGrab; }
 
 	float StandingHeight = 68.0f;
 	float StandingEyeHeight = 50.0f;

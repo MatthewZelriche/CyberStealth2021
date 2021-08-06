@@ -56,6 +56,15 @@ void AStealthPlayerCharacter::Tick(float DeltaTime) {
 	*/
 }
 
+void AStealthPlayerCharacter::OnJumped_Implementation() {
+	Super::OnJumped_Implementation();
+	bIsAvailableForLedgeGrab = true;
+}
+
+void AStealthPlayerCharacter::NotifyJumpApex() {
+	bIsAvailableForLedgeGrab = false;
+}
+
 void AStealthPlayerCharacter::LookY(float value) {
 	if (!StealthMovementPtr->GetInSlideState()) {
 		AddControllerPitchInput(value * XMouseSensitivity);

@@ -13,6 +13,7 @@
 UStealthPlayerMovement::UStealthPlayerMovement() {
 	// We want this off by default, so the player can smoothly move up and down steps.
 	bUseFlatBaseForFloorChecks = false;
+	bNotifyApex = true;
 	CrouchTime = 6.0f;
 	UncrouchTime = 6.0f;
 	CrouchedHalfHeight = 42.0f;
@@ -33,6 +34,14 @@ void UStealthPlayerMovement::BeginPlay() {
 	SlideTimeline.AddInterpFloat(SlideAlphaCurve, SlideTimelineProgress);
 	SlideTimeline.SetTimelineFinishedFunc(FinishedSlideEvent);
 	SlideTimeline.SetPlayRate(1 / 1.0f);
+}
+
+void UStealthPlayerMovement::OnMovementModeChanged(EMovementMode PreviousMovementMode, uint8 PreviousCustomMode) {
+	Super::OnMovementModeChanged(PreviousMovementMode, PreviousCustomMode);
+
+	if (MovementMode == EMovementMode::MOVE_Falling) {
+		bNotifyApex = true;
+	}
 }
 
 void UStealthPlayerMovement::TickComponent(float DeltaTime, enum ELevelTick TickType, FActorComponentTickFunction* ThisTickFunction) {
