@@ -54,6 +54,18 @@ private:
 	void OnFinishPlayerSlide();
 	bool bDidFinishSlide = false;
 
+	//Climbing
+	FTimeline ClimbTimeline;
+	UPROPERTY(EditAnywhere, Category = "Climb")
+	UCurveFloat* ClimbAlphaCurve;
+	UFUNCTION()
+	void PlayerClimbAlphaProgress();
+	UFUNCTION()
+	void OnFinishedPlayerClimb();
+	FVector StartClimbPos;
+	FVector EndClimbPos;
+	bool bDidFinishClimb = false;
+
 public:
 	UStealthPlayerMovement();
 	virtual void BeginPlay() override;
@@ -114,6 +126,10 @@ public:
 	FVector SlideStartCachedVector;
 	UPROPERTY(EditAnywhere, Category = "Sliding")
 	float SlideTurnReduction = 2.5f;
+	UPROPERTY(BlueprintReadOnly, Category = "Climbing")
+	float LedgeGrabHeightAboveHead = 15.0f;
+	UPROPERTY(BlueprintReadOnly, Category = "Climbing")
+	float MaxClimbAngle = 35.0f;
 
 protected:
 	void TickComponent(float DeltaTime, enum ELevelTick TickType, FActorComponentTickFunction* ThisTickFunction) override;
@@ -124,6 +140,18 @@ protected:
 	void UpdateLeanState();
 
 private:
+	/**
+	* Checks if there are any valid ledges the player can climb onto without clipping. Usually called when the player requests to climb.
+	* 
+	* This function runs a series of trace checks to look for available ledges and determine if the player can mantle those ledges without
+	* any clipping issues. It performs a sphere check to find all available ledges in front of the player, determines if there is space above the player's
+	* head to climb, and finally determines if the requested ledge location has enough space for the player capsule. 
+	* 
+	* @param OutValidLedgeLocation - This vector will be filled with the position in worldpace of the valid ledge. If no valid ledge is found,
+	* the vector will be unchanged. 
+	* @return True if a valid ledge location was found, false otherwise. 
+	*/
+	bool TestForValidLedges(FVector& OutValidLedgeLocation);
 
 	/**
 	* Determines much of a requested lean can be performed without camera collisions with geometry.

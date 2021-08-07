@@ -7,6 +7,7 @@
 #include "GameFramework/SpringArmComponent.h"
 #include "StealthPlayerCharacter.h"
 #include "Camera/CameraComponent.h"
+#include "Algo/Reverse.h"
 
 #include "CameraFXHandler.h"
 
@@ -26,6 +27,7 @@ UStealthPlayerMovement::UStealthPlayerMovement() {
 void UStealthPlayerMovement::BeginPlay() {
 	Super::BeginPlay();
 	check(SlideAlphaCurve);
+	check(ClimbAlphaCurve);
 
 	FOnTimelineFloat SlideTimelineProgress;
 	FOnTimelineEvent FinishedSlideEvent;
@@ -34,6 +36,14 @@ void UStealthPlayerMovement::BeginPlay() {
 	SlideTimeline.AddInterpFloat(SlideAlphaCurve, SlideTimelineProgress);
 	SlideTimeline.SetTimelineFinishedFunc(FinishedSlideEvent);
 	SlideTimeline.SetPlayRate(1 / 1.0f);
+
+	FOnTimelineFloat ClimbTimelineProgress;
+	FOnTimelineEvent FinishedClimbEvent;
+	ClimbTimelineProgress.BindUFunction(this, "PlayerClimbAlphaProgress");
+	FinishedClimbEvent.BindUFunction(this, "OnFinishedPlayerClimb");
+	ClimbTimeline.AddInterpFloat(ClimbAlphaCurve, ClimbTimelineProgress);
+	ClimbTimeline.SetTimelineFinishedFunc(FinishedClimbEvent);
+	ClimbTimeline.SetPlayRate(1 / 1.0f);
 }
 
 void UStealthPlayerMovement::OnMovementModeChanged(EMovementMode PreviousMovementMode, uint8 PreviousCustomMode) {
@@ -53,6 +63,7 @@ void UStealthPlayerMovement::TickComponent(float DeltaTime, enum ELevelTick Tick
 	movementStates.UpdateStates();
 	FlatBaseToggle();
 	SlideTimeline.TickTimeline(DeltaTime);
+	ClimbTimeline.TickTimeline(DeltaTime);
 }
 
 void UStealthPlayerMovement::FlatBaseToggle() {
@@ -83,6 +94,70 @@ bool UStealthPlayerMovement::TraceTestForFloor(float zOffset = 0) {
 	else {
 		return false;
 	}
+}
+
+bool UStealthPlayerMovement::TestForValidLedges(FVector& OutValidLedgeLocation) {
+	UCapsuleComponent* playerCapsule = CharacterOwner->GetCapsuleComponent();
+	float halfHeight = playerCapsule->GetUnscaledCapsuleHalfHeight();
+
+	// Check in front of the player to see if there are any ledges within the player's "grabbing range". 
+	TArray<FHitResult> results;
+	FVector start = playerCapsule->GetComponentLocation();
+	start.Z = (start.Z + halfHeight) + LedgeGrabHeightAboveHead;
+	start = start + (playerCapsule->GetForwardVector() * MaxClimbAngle);
+	FVector end = start;
+	end.Z = end.Z - (halfHeight * 2) + MaxStepHeight;
+	if (!GetWorld()->SweepMultiByObjectType(results, start, end, FQuat::Identity, FCollisionObjectQueryParams::AllStaticObjects, FCollisionShape::MakeSphere(5.0f))) {
+		return false;
+	}
+
+	// Iterate through each potential ledge, starting from the last (lowest) ledge encountered.
+	for (auto potentialLedge : results) {
+		if (potentialLedge.Time == 0) {
+			return false;
+		}
+		
+		// Check if there's actually enough height above the player to move into the requested ledge position
+		FVector enoughHeadroomEnd = playerCapsule->GetComponentLocation();
+		enoughHeadroomEnd.Z = enoughHeadroomEnd.Z + ((halfHeight * 2) + potentialLedge.ImpactPoint.Z) - enoughHeadroomEnd.Z;
+		FHitResult discard;
+		if (GetWorld()->LineTraceSingleByChannel(discard, playerCapsule->GetComponentLocation(), enoughHeadroomEnd, ECollisionChannel::ECC_Visibility)) {
+			return false;
+		}
+
+		// Capsule Trace at the final ledge position to ensure there's enough room for the player.
+		FCollisionShape capsuleCheck = FCollisionShape::MakeCapsule(playerCapsule->GetUnscaledCapsuleRadius(), halfHeight);
+		FHitResult CheckSpaceHitResult;
+		FVector roomStart = potentialLedge.ImpactPoint;
+		roomStart.Z += halfHeight;
+		roomStart.Z += 2.0f;		// Buffer for ensuring the trace doesnt touch the floor in an otherwise valid position.
+		if (!GetWorld()->SweepSingleByChannel(CheckSpaceHitResult, roomStart, roomStart, FQuat::Identity, ECollisionChannel::ECC_Visibility, capsuleCheck)) {
+			// If there's no hit, we are good to go!
+			OutValidLedgeLocation = roomStart;
+			return true;
+		}
+		else {
+			// If there is a hit, we need to test an edge case to see if the collision is actually just something the player can step up over.
+			if (roomStart.Z - halfHeight - CheckSpaceHitResult.ImpactPoint.Z <= MaxStepHeight) {
+				FVector EdgeCaseStart = roomStart;
+				//EdgeCaseStart.Z += roomStart.Z - halfHeight - CheckSpaceHitResult.ImpactPoint.Z;
+				EdgeCaseStart.Z = EdgeCaseStart.Z + (CheckSpaceHitResult.ImpactPoint.Z - (roomStart.Z - halfHeight));
+				const FName TraceTag("MyTraceTag");
+				GetWorld()->DebugDrawTraceTag = TraceTag;
+				FCollisionQueryParams params;
+				params.TraceTag = TraceTag;
+				if (!GetWorld()->SweepSingleByChannel(CheckSpaceHitResult, EdgeCaseStart, EdgeCaseStart, FQuat::Identity, ECollisionChannel::ECC_Visibility, capsuleCheck, params)) {
+					// We've confirmed the edge case and that the player can indeed fit here
+					OutValidLedgeLocation = EdgeCaseStart;
+					return true;
+				}
+			}
+		}
+	}
+
+	// None of the ledges were valid.
+	return false;
+
 }
 
 float UStealthPlayerMovement::GetMaxSpeed() const {
@@ -203,8 +278,17 @@ void UStealthPlayerMovement::PlayerSlideAlphaProgress() {
 	PlayerRef->AddMovementInput(PlayerRef->GetActorForwardVector(), 1.0f);
 }
 
+void UStealthPlayerMovement::PlayerClimbAlphaProgress() {
+	float alpha = ClimbAlphaCurve->GetFloatValue(ClimbTimeline.GetPlaybackPosition());
+	PlayerRef->SetActorLocation(FMath::Lerp(StartClimbPos, EndClimbPos, alpha));
+}
+
 void UStealthPlayerMovement::OnFinishPlayerSlide() {
 	bDidFinishSlide = true;
+}
+
+void UStealthPlayerMovement::OnFinishedPlayerClimb() {
+	bDidFinishClimb = true;
 }
 
 bool UStealthPlayerMovement::CheckNeedsVariableCrouch(float& OutCeilingDistance) {

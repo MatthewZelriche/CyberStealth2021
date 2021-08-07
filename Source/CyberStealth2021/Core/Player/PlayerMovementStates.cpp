@@ -8,6 +8,19 @@
 #include "CollisionQueryParams.h"
 
 hsm::Transition PlayerMovementStates::GenericLocomotion::GetTransition() {
+	FVector validLedgePos;
+
+	if (Owner().bDidFinishClimb) {
+		Owner().bDidFinishClimb = false;
+	}
+
+	if (Owner().PlayerRef->GetIsAvailableForLedgeGrab() && Owner().TestForValidLedges(validLedgePos)) {
+		// For some reason I could not get state arguments to work here, so I'm setting the end
+		// climb pos directly.
+		Owner().EndClimbPos = validLedgePos;
+		return hsm::SiblingTransition<Climb>();
+	}
+
 	// bDidFinishSlide is set after the slide timeline is completed. We flip it back to false here until the next slide occurs. 
 	if (Owner().bDidFinishSlide) {
 		Owner().bDidFinishSlide = false;
@@ -30,9 +43,7 @@ hsm::Transition PlayerMovementStates::GenericLocomotion::GetTransition() {
 	else if (!Owner().PBCharacter->IsSprinting()) {
 		return hsm::InnerEntryTransition<Walk>();
 	}
-	else {
-		return hsm::NoTransition();
-	}
+	return hsm::NoTransition();
 }
 
 hsm::Transition PlayerMovementStates::Slide::GetTransition() {
@@ -215,4 +226,19 @@ void PlayerMovementStates::Sprint::OnEnter() {
 void PlayerMovementStates::Sprint::OnExit() {
 	float DefaultFOV = Owner().PlayerRef->GetCameraFXHandler()->GetCameraDefaultFOV();
 	Owner().PlayerRef->GetCameraFXHandler()->RequestNewFOV(DefaultFOV, SprintFOVTransitionSpeed);
+}
+
+hsm::Transition PlayerMovementStates::Climb::GetTransition() {
+	if (Owner().bDidFinishClimb) {
+		return hsm::SiblingTransition<GenericLocomotion>();
+	}
+
+	return hsm::NoTransition();
+}
+void PlayerMovementStates::Climb::OnEnter() {
+	Owner().PlayerRef->StopJumping();
+	Owner().StopMovementImmediately();
+
+	Owner().StartClimbPos = Owner().PlayerRef->GetActorLocation();
+	Owner().ClimbTimeline.PlayFromStart();
 }
