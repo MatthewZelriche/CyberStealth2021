@@ -6,6 +6,7 @@
 #include "Camera/CameraComponent.h"
 #include "Misc/App.h"
 #include "CollisionQueryParams.h"
+#include "SequenceCameraShake.h"
 
 hsm::Transition PlayerMovementStates::GenericLocomotion::GetTransition() {
 	FVector validLedgePos;
@@ -238,7 +239,20 @@ hsm::Transition PlayerMovementStates::Climb::GetTransition() {
 void PlayerMovementStates::Climb::OnEnter() {
 	Owner().PlayerRef->StopJumping();
 	Owner().StopMovementImmediately();
-
+	Owner().ClimbDistance = (Owner().EndClimbPos.Z - Owner().PlayerRef->GetCapsuleComponent()->GetUnscaledCapsuleHalfHeight()) - (Owner().PlayerRef->GetLastJumpStartingZPos());
 	Owner().StartClimbPos = Owner().PlayerRef->GetActorLocation();
+	// We want to modify how long the climb is based on how high up it was from the player's starting position.
+	if (Owner().ClimbDistance > Owner().ClimbTimeDistanceThreshold) {
+		Owner().ClimbTimeline.SetPlayRate(1 / Owner().SlowClimbSpeed);
+		USequenceCameraShake* dco = Owner().ClimbShaker->GetDefaultObject<USequenceCameraShake>();
+		dco->PlayRate = 1 / Owner().SlowClimbSpeed;
+		Owner().PlayerRef->GetCameraManager()->PlayWorldCameraShake(Owner().GetWorld(), Owner().ClimbShaker, Owner().PlayerRef->GetActorLocation(), 500, 500, 1.0f);
+	}
+	else {
+		Owner().ClimbTimeline.SetPlayRate(1 / Owner().QuickClimbSpeed);
+		USequenceCameraShake* dco = Owner().ClimbShaker->GetDefaultObject<USequenceCameraShake>();
+		dco->PlayRate = 1 / Owner().QuickClimbSpeed;
+		Owner().PlayerRef->GetCameraManager()->PlayWorldCameraShake(Owner().GetWorld(), Owner().ClimbShaker, Owner().PlayerRef->GetActorLocation(), 500, 500, 1.0f);
+	}
 	Owner().ClimbTimeline.PlayFromStart();
 }

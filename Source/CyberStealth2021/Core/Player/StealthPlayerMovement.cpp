@@ -43,7 +43,9 @@ void UStealthPlayerMovement::BeginPlay() {
 	FinishedClimbEvent.BindUFunction(this, "OnFinishedPlayerClimb");
 	ClimbTimeline.AddInterpFloat(ClimbAlphaCurve, ClimbTimelineProgress);
 	ClimbTimeline.SetTimelineFinishedFunc(FinishedClimbEvent);
-	ClimbTimeline.SetPlayRate(1 / 1.0f);
+	ClimbTimeline.SetPlayRate(1 / 0.3f);
+
+	
 }
 
 void UStealthPlayerMovement::OnMovementModeChanged(EMovementMode PreviousMovementMode, uint8 PreviousCustomMode) {

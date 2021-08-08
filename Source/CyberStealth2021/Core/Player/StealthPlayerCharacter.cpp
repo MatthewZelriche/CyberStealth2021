@@ -8,6 +8,8 @@
 #include "GameFramework/SpringArmComponent.h"
 #include "Math/Vector.h"
 #include "Math/UnrealMathUtility.h"
+#include "Kismet/GameplayStatics.h"
+#include "Camera/PlayerCameraManager.h"
 
 AStealthPlayerCharacter::AStealthPlayerCharacter(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer.SetDefaultSubobjectClass<UStealthPlayerMovement>(ACharacter::CharacterMovementComponentName)) {
@@ -28,6 +30,7 @@ AStealthPlayerCharacter::AStealthPlayerCharacter(const FObjectInitializer& Objec
 	PlayerCamera = CreateDefaultSubobject<UCameraComponent>(TEXT("PlayerCamera"));
 	PlayerCamera->SetupAttachment(CameraAnchor);
 	PlayerCamera->SetRelativeLocation(FVector(0, 0, 0));
+	cameraManager = UGameplayStatics::GetPlayerCameraManager(GetWorld(), 0);
 	
 	// Get pointer to overridden movement component
 	StealthMovementPtr = Cast<UStealthPlayerMovement>(ACharacter::GetMovementComponent());
@@ -59,6 +62,7 @@ void AStealthPlayerCharacter::Tick(float DeltaTime) {
 void AStealthPlayerCharacter::OnJumped_Implementation() {
 	Super::OnJumped_Implementation();
 	bIsAvailableForLedgeGrab = true;
+	LastJumpLiftoffZPos = GetCapsuleComponent()->GetComponentLocation().Z - GetCapsuleComponent()->GetUnscaledCapsuleHalfHeight();
 }
 
 void AStealthPlayerCharacter::NotifyJumpApex() {

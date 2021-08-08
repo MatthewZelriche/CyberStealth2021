@@ -10,6 +10,7 @@
 class UCameraComponent;
 class UStealthPlayerMovement;
 class USpringArmComponent;
+class APlayerCameraManager;
 /**
  * 
  */
@@ -26,7 +27,10 @@ private:
 	UStealthPlayerMovement* StealthMovementPtr;
 	USpringArmComponent* CameraAnchor;
 
+	APlayerCameraManager* cameraManager;
+
 	bool bIsAvailableForLedgeGrab = false;
+	float LastJumpLiftoffZPos = 0.0f;
 
 	friend UCameraFXHandler;			// Declare UCameraBob as friend so it can access the private OnPlayerStepped() function.
 protected:
@@ -59,6 +63,11 @@ public:
 	FORCEINLINE UCameraFXHandler* GetCameraFXHandler() { return CameraFXHandler; }
 	UFUNCTION(BlueprintCallable)
 	FORCEINLINE bool GetIsAvailableForLedgeGrab() { return bIsAvailableForLedgeGrab; }
+
+	// Gets the Z level the player was at when they first started the most recent jump.
+	// Currently used for calculate how fast a climb should be in StealthPlayerMovement
+	FORCEINLINE float GetLastJumpStartingZPos() { return LastJumpLiftoffZPos; }
+	FORCEINLINE APlayerCameraManager* GetCameraManager() { return cameraManager; }
 
 	float StandingHeight = 68.0f;
 	float StandingEyeHeight = 50.0f;

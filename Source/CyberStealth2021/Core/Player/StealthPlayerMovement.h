@@ -7,9 +7,18 @@
 #include "Character/PBPlayerMovement.h"
 #include "Components/TimelineComponent.h"
 #include "PlayerMovementStates.h"
+#include "SequenceCameraShake.h"
 #include "StealthPlayerMovement.generated.h"
 
 class AStealthPlayerCharacter;
+class UCameraAnimationSequence;
+
+
+UCLASS(BlueprintType)
+class CYBERSTEALTH2021_API UClimbShaker : public USequenceCameraShake
+{
+	GENERATED_BODY()
+};
 
 /**
  * 
@@ -56,7 +65,7 @@ private:
 
 	//Climbing
 	FTimeline ClimbTimeline;
-	UPROPERTY(EditAnywhere, Category = "Climb")
+	UPROPERTY(EditAnywhere, Category = "Climbing")
 	UCurveFloat* ClimbAlphaCurve;
 	UFUNCTION()
 	void PlayerClimbAlphaProgress();
@@ -64,7 +73,16 @@ private:
 	void OnFinishedPlayerClimb();
 	FVector StartClimbPos;
 	FVector EndClimbPos;
+	float ClimbDistance = 0.0f;
 	bool bDidFinishClimb = false;
+	UPROPERTY(EditDefaultsOnly, Category = "Climbing")
+	TSubclassOf<USequenceCameraShake> ClimbShaker = UClimbShaker::StaticClass();
+	UPROPERTY(EditAnywhere, Category = "Climbing")
+	float ClimbTimeDistanceThreshold = 95.0f;
+	UPROPERTY(EditAnywhere, Category = "Climbing")
+	float QuickClimbSpeed = 0.25f;
+	UPROPERTY(EditAnywhere, Category = "Climbing")
+	float SlowClimbSpeed = 0.5f;
 
 public:
 	UStealthPlayerMovement();
@@ -123,6 +141,8 @@ public:
 	bool GetInSprintState() { return movementStates.IsInState<PlayerMovementStates::Sprint>(); }
 	UFUNCTION(BlueprintCallable)
 	bool GetInGenericLocomotionState() { return movementStates.IsInState<PlayerMovementStates::GenericLocomotion>(); }
+	UFUNCTION(BlueprintCallable)
+	bool GetInClimbState() { return movementStates.IsInState<PlayerMovementStates::Climb>(); }
 	FVector SlideStartCachedVector;
 	UPROPERTY(EditAnywhere, Category = "Sliding")
 	float SlideTurnReduction = 2.5f;
